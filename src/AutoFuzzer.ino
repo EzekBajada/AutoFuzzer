@@ -20,6 +20,12 @@ CANFuzzer fuzzer;
 void setup() 
 {
     system_update_cpu_freq(160);
+    Serial.begin(250000);
+    Serial.println("\n\nCAN-Bus Fuzzer\n");
+    Serial.print("Initialising...");
+    
+    
+    
 
 
 }
