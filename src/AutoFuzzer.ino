@@ -12,17 +12,28 @@
  * D7   MOSI    MOSI    MOSI  MOSI    MOSI
  * D8                   CS   
  */
-
+void ClickHandler(uint8_t buttonCode)
+{
+    switch(buttonCode)
+    {
+        case 1:
+        case 2:
+        case 3:     
+    }
+}
 
 GUI gui;
+CANFuzzer fuzzer;
 GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0);
 GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0);
+GUILabel buttonLabelModeSpy(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Spy Mode", 1, ILI9341_GREEN, true, NULL, 0);
+GUILabel buttonLabelModeFuzzing(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Fuzzing Mode", 1, ILI9341_GREEN, true, NULL, 0);
+GUILabel buttonLabelModeIntelligent(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Intelligent Mode", 1, ILI9341_GREEN, true, NULL, 0);
 
-
-CANFuzzer fuzzer;
-
-
-
+// Buttons
+GUIImage spyMode(gui.GetTFT(), gui.GetTS(),0,34,100,50,&buttonLabelModeSpy,&ClickHandler,1);      
+GUIImage fuzzingMode(gui.GetTFT(), gui.GetTS(),0,34,100,50,&buttonLabelModeFuzzing,&ClickHandler,2);      
+GUIImage intelligentFuzzerMode(gui.GetTFT(), gui.GetTS(),0,34,100,50,&buttonLabelModeIntelligent,&ClickHandler,2);      
 void setup() 
 {
     system_update_cpu_freq(160);
@@ -34,31 +45,9 @@ void setup()
     gui.Run();
     
     Serial.begin(250000);
-    Serial.println("\n\nCAN-Bus Fuzzer\n");
-    Serial.print("Initialising...");
-    uint8_t result = fuzzer.Init();
-    switch(result)
-    {
-        case 1: 
-        {
-            Serial.println("Error Initialising CAN RX!");
-            break;
-        }
-        case 2:
-        {
-            Serial.println("Error Initialising CAN TX!");
-            break;
-        }
-        default: 
-        {
-            Serial.println("Unknown error!");
-            break;
-        }
-    }
-    
-    
-    
-    fuzzer.AutoDetectCANSpeed();
+    if(fuzzer.Init() == 0){ 
+       fuzzer.AutoDetectCANSpeed();
+    };
     
 }
 

@@ -61,11 +61,10 @@ void GUILabel::Run(TS_Point* clickPoint)
 
 
 // GUIImage --------------------------------------------------------------------------------------------------------------------------------------------------------
-GUIImage::GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, const uint8_t* Image, uint16_t ImageLength, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
+GUIImage::GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, GUILabel* Desc, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
     :GUIElement(tft, touch, X, Y, Width, Height)
 {
-    this->Image = Image;
-    this->ImageLength = ImageLength;
+    this->Desc = Desc;
     this->ClickHandler = ClickHandler;
     this->callBackCode = callBackCode;
 }
@@ -89,35 +88,20 @@ void GUIImage::Run(TS_Point* clickPoint)
                 this->ClickHandler(this->callBackCode);
                 this->clickInProgress = true;
                 this->needsRedrawing = true;
-                this->imageClicked = !this->imageClicked;
             }        
         }
     }
     
     if (this->needsRedrawing)
     {
-        if(!this->imageClicked) 
-        {
         uint32_t pos = 0;
         for(uint16_t y = 0; y < this->Height; y++)
             for(uint16_t x = 0; x < this->Width; x++)
             {
-                uint16_t color = pgm_read_byte(this->Image + pos++) << 8 | pgm_read_byte(this->Image + pos++);
+                uint16_t color = ILI9341_WHITE;
                 tft->drawPixel((X+x), (Y+y), color); 
             }
         this->needsRedrawing = false;
-        } else
-        {
-        uint32_t pos = 0;
-        for(uint16_t y = 0; y < this->Height; y++)
-            for(uint16_t x = 0; x < this->Width; x++)
-            {
-                uint16_t color = pgm_read_byte(this->Image + pos++) << 8 | pgm_read_byte(this->Image + pos++);
-                uint16_t grayscale = turnToGrayScale(color);
-                tft->drawPixel((X+x), (Y+y), grayscale); 
-            }
-        this->needsRedrawing = false;
-        }
     }
 }
 
@@ -205,7 +189,7 @@ GUI::GUI()
     this->touch->setRotation(3);    
     this->drawScreen(); 
     EEPROM.begin(4096);
-    uint16_t pos = 0;
+    uint16_t pos = 0;   
     if (EEPROM.read(pos++) == 0xAB && EEPROM.read(pos++) == 0xCD)
     {
         vi1 = (EEPROM.read(pos++) << 8) | EEPROM.read(pos++);

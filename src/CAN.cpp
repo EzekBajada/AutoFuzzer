@@ -61,25 +61,20 @@ bool CAN::AutoDetectSpeed(GUILabel* statusLabel) // AutoDetect CANBus Speed
     for(uint8_t i = 0; i < 18; i++)
     {
         this->setStatus(String(F("Checking ")) + CAN::GetSpeedString(speeds[i]) + String(F("kbps")));
-        Serial.print(String(F("Checking ")) + CAN::GetSpeedString(speeds[i]) + String(F("kbps...")));
         if (this->Init(speeds[i]))
         {
-            Serial.print("Init OK... Awaiting Messages...");
             uint64_t timeout = millis() + 1000;
             while (timeout > millis()) 
             {
                 CANMessage* message = this->Receive();
                 if (message != NULL)
                 {
-                    Serial.println("OK.");
                     return true;                  
                 }
                 if(this->statusLabel != NULL) this->setStatus(this->statusLabel->Text + String(F(".")));
                 delay(100);              
             }
-            Serial.println("No messages received."); 
         }
-        else Serial.println("Failed to set Speed.");        
     }
     return false;
 }

@@ -34,8 +34,9 @@ class GUIElement
 class GUIImage: public GUIElement
 {
     public:
-        GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, const uint8_t* Image, uint16_t ImageLength, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode);
+        GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, GUILabel* Desc, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode);
         ~GUIImage() {};
+        GUILabel* Desc = NULL;
         const uint8_t* Image;
         uint16_t ImageLength;
         void Run(TS_Point* clickPoint);        
@@ -46,7 +47,6 @@ class GUIImage: public GUIElement
         void (*ClickHandler)(uint8_t imageCode);
         uint8_t callBackCode = 0;
         bool clickInProgress = false;
-        bool imageClicked = false;
 };
 
 class GUILabel: public GUIElement
