@@ -12,40 +12,6 @@ extern "C"
 }
 
 
-class CANMessage
-{
-    public:
-        CANMessage(uint32_t id, uint8_t length) 
-        {
-            this->id = id;
-            this->length = length;
-            this->timestamp = 0;
-            this->isExtended = 0;
-            this->isRemoteRequest = 0;
-        };
-        uint64_t timestamp;
-        uint32_t id;
-        uint8_t data[8];  
-        uint8_t length;
-        bool isExtended;
-        bool isRemoteRequest;
-};
-
-class CAN
-{
-    public:
-        CAN(uint8_t Pin);
-        bool Init(uint8_t Speed);
-        bool Init();
-        bool Transmit(CANMessage* message);
-
-    private:
-        uint8_t Pin;
-        uint8_t Speed;
-        MCP_CAN* interface = NULL;   
-        bool initialised = false;
-};
-
 
 class GUIElement
 {
@@ -62,6 +28,7 @@ class GUIElement
 
     protected:
         void fillArc(uint16_t x, uint16_t y, uint16_t start_angle, uint16_t end_angle, uint16_t radiusX, uint16_t radiusY, uint16_t width, uint16_t colour);
+        uint16_t turnToGrayScale(uint16_t color);
 };
 
 class GUIImage: public GUIElement
@@ -71,6 +38,27 @@ class GUIImage: public GUIElement
         ~GUIImage() {};
         const uint8_t* Image;
         uint16_t ImageLength;
+        void Run(TS_Point* clickPoint);        
+
+    private:
+        TS_Point* clickStartPoint = NULL;
+        bool needsRedrawing = true;
+        void (*ClickHandler)(uint8_t imageCode);
+        uint8_t callBackCode = 0;
+        bool clickInProgress = false;
+        bool imageClicked = false;
+};
+
+class GUILabel: public GUIElement
+{
+    public:
+        GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode);
+        ~GUILabel() {};
+        String Text = "";
+        uint8_t Size = 1;
+        uint16_t Color = 0xFFFF;
+        bool AutoCenter = false;
+        void Redraw() { this->needsRedrawing = true; };
         void Run(TS_Point* clickPoint);        
 
     private:
@@ -129,15 +117,59 @@ class GUI
         uint16_t elementCount = 0;
 };
 
+class CANMessage
+{
+    public:
+        CANMessage(uint32_t id) 
+        {
+            this->ID = id;
+            this->Length = 0;
+            this->Timestamp = millis();
+            this->IsExtended = 0;
+            this->IsRemoteRequest = 0;
+            for(uint8_t i = 0; i < 8; i++) this->Data[i] = 0;            
+        };
+        uint64_t Timestamp;
+        uint32_t ID;
+        uint8_t Data[8];  
+        uint8_t Length;
+        bool IsExtended;
+        bool IsRemoteRequest;
+};
+
+class CAN
+{
+    public:
+        CAN(uint8_t Pin);
+        bool Init(uint8_t speed);
+        bool AutoDetectSpeed(GUILabel* statusLabel);
+        uint8_t GetSpeed() { return this->speed; };
+        static String GetSpeedString(uint8_t speed);
+        bool Transmit(CANMessage* message);
+        CANMessage* Receive();        
+
+    private:
+        uint8_t pin;
+        uint8_t speed;
+        MCP_CAN* interface = NULL;   
+        bool initialised = false;
+        void setStatus(String status);
+        GUILabel* statusLabel = NULL;
+};
+
 class CANFuzzer
 {
     public:
         CANFuzzer();
         ~CANFuzzer();
-        bool Init();
-        void Run();        
+        uint8_t Init();
+        void Run();
+        uint8_t AutoDetectCANSpeed();
+
+        GUILabel* statusLabel = NULL;        
 
     private:
         CAN* transmitter;
         CAN* receiver;
+        void setStatus(String status);
 };

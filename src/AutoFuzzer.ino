@@ -15,19 +15,51 @@
 
 
 GUI gui;
+GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0);
+GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0);
+
+
 CANFuzzer fuzzer;
+
+
 
 void setup() 
 {
     system_update_cpu_freq(160);
+    
+    fuzzer.statusLabel = &statusLabel;
+    
+    gui.RegisterElement(&titleLabel);
+    gui.RegisterElement(&statusLabel);
+    gui.Run();
+    
     Serial.begin(250000);
     Serial.println("\n\nCAN-Bus Fuzzer\n");
     Serial.print("Initialising...");
+    uint8_t result = fuzzer.Init();
+    switch(result)
+    {
+        case 1: 
+        {
+            Serial.println("Error Initialising CAN RX!");
+            break;
+        }
+        case 2:
+        {
+            Serial.println("Error Initialising CAN TX!");
+            break;
+        }
+        default: 
+        {
+            Serial.println("Unknown error!");
+            break;
+        }
+    }
     
     
     
-
-
+    fuzzer.AutoDetectCANSpeed();
+    
 }
 
 void loop() 
@@ -35,5 +67,4 @@ void loop()
     gui.Run();
     fuzzer.Run();     
     yield();
-
 }

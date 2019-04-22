@@ -13,6 +13,53 @@ GUIElement::GUIElement(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16
     this->Height = height;
 }
 
+// GUILabel --------------------------------------------------------------------------------------------------------------------------------------------------------
+GUILabel::GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
+    :GUIElement(tft, touch, X, Y, Width, Height)
+{
+    this->Text = text;
+    this->Size = size;
+    this->Color = color;
+    this->AutoCenter = autoCenter;
+    this->ClickHandler = ClickHandler;
+    this->callBackCode = callBackCode;
+}
+
+void GUILabel::Run(TS_Point* clickPoint)
+{
+    if (this->ClickHandler != NULL)
+        {
+        if (clickPoint == NULL)
+        {
+            if (this->clickInProgress) 
+            {
+                this->clickInProgress = false;
+                this->needsRedrawing = true;
+            }
+        }
+        else
+        {   
+            if (!this->clickInProgress)
+            {     
+                this->ClickHandler(this->callBackCode);
+                this->clickInProgress = true;
+                this->needsRedrawing = true;
+            }        
+        }
+    }
+    if (this->needsRedrawing)
+    {
+        this->tft->fillRect(this->X, this->Y, this->Width, this->Height, 0);
+        this->tft->setTextColor(this->Color, 0xFFFF); // 5x8
+        this->tft->setTextSize(this->Size);
+        uint16_t x = this->X;
+        if (this->AutoCenter) x = this->X + ((this->Width - this->X - (this->Text.length() * 6 * this->Size)) / 2);
+        for(uint8_t i = 0; i < this->Text.length(); i++) this->tft->drawChar(x + (i * 6 * this->Size), this->Y, this->Text[i], this->Color, 0, this->Size);
+        this->needsRedrawing = false;
+    }
+}
+
+
 // GUIImage --------------------------------------------------------------------------------------------------------------------------------------------------------
 GUIImage::GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, const uint8_t* Image, uint16_t ImageLength, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
     :GUIElement(tft, touch, X, Y, Width, Height)
@@ -42,19 +89,35 @@ void GUIImage::Run(TS_Point* clickPoint)
                 this->ClickHandler(this->callBackCode);
                 this->clickInProgress = true;
                 this->needsRedrawing = true;
+                this->imageClicked = !this->imageClicked;
             }        
         }
     }
+    
     if (this->needsRedrawing)
     {
+        if(!this->imageClicked) 
+        {
         uint32_t pos = 0;
         for(uint16_t y = 0; y < this->Height; y++)
             for(uint16_t x = 0; x < this->Width; x++)
             {
                 uint16_t color = pgm_read_byte(this->Image + pos++) << 8 | pgm_read_byte(this->Image + pos++);
-                tft->drawPixel((X+x), (Y+y), color); // RGB 565 for grayscale average all 3
+                tft->drawPixel((X+x), (Y+y), color); 
             }
         this->needsRedrawing = false;
+        } else
+        {
+        uint32_t pos = 0;
+        for(uint16_t y = 0; y < this->Height; y++)
+            for(uint16_t x = 0; x < this->Width; x++)
+            {
+                uint16_t color = pgm_read_byte(this->Image + pos++) << 8 | pgm_read_byte(this->Image + pos++);
+                uint16_t grayscale = turnToGrayScale(color);
+                tft->drawPixel((X+x), (Y+y), grayscale); 
+            }
+        this->needsRedrawing = false;
+        }
     }
 }
 
@@ -290,4 +353,13 @@ void GUIElement::fillArc(uint16_t x, uint16_t y, uint16_t start_angle, uint16_t 
     x1 = x3;
     y1 = y3;
   }
+}
+
+uint16_t GUIElement::turnToGrayScale(uint16_t color)
+{
+   uint32_t sum = ((color & 0b1111100000000000) >> 11) * 255 / 31;
+   sum += ((color & 0b0000011111100000) >> 5) * 255 / 63;
+   sum += (color & 0b0000000000011111) * 255 / 31;    
+   sum /= 3;  
+   return ((sum & 0xF8) << 8) | ((sum & 0xFC) << 3) | (sum >> 3);
 }
