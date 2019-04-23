@@ -94,6 +94,17 @@ class GUIGauge: public GUIElement
         uint64_t lastMovement = 0;
 };
 
+class GUIScroll : public GUIElement
+{
+    public:
+        GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber);
+        ~GUIScroll(); 
+        GUILabel** data;
+    private:
+        uint16_t MovementSpeed = 200;
+        TS_Point* clickStartPoint = NULL;
+        uint64_t lastMovement = 0;
+};
 class GUI
 {
     public:
