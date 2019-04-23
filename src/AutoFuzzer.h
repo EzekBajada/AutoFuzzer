@@ -16,7 +16,7 @@ extern "C"
 class GUIElement
 {
     public:
-        GUIElement(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height);
+        GUIElement(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber);
         virtual ~GUIElement() {};
         Adafruit_ILI9341* tft;
         XPT2046_Touchscreen* touch;
@@ -24,6 +24,7 @@ class GUIElement
         uint16_t Y;
         uint16_t Width;
         uint16_t Height;
+        uint16_t ScreenNumber;
         virtual void Run(TS_Point* clickPoint) = 0;
 
     protected:
@@ -34,9 +35,8 @@ class GUIElement
 class GUIImage: public GUIElement
 {
     public:
-        GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, GUILabel* Desc, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode);
+        GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t screenNumber, const uint8_t* Image, uint16_t ImageLength, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode);
         ~GUIImage() {};
-        GUILabel* Desc = NULL;
         const uint8_t* Image;
         uint16_t ImageLength;
         void Run(TS_Point* clickPoint);        
@@ -47,12 +47,13 @@ class GUIImage: public GUIElement
         void (*ClickHandler)(uint8_t imageCode);
         uint8_t callBackCode = 0;
         bool clickInProgress = false;
+        bool imageClicked = false;
 };
 
 class GUILabel: public GUIElement
 {
     public:
-        GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode);
+        GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t screenNumber, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode);
         ~GUILabel() {};
         String Text = "";
         uint8_t Size = 1;
@@ -72,7 +73,7 @@ class GUILabel: public GUIElement
 class GUIGauge: public GUIElement
 {
     public:
-        GUIGauge(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Radius, uint16_t DegreesStart, uint16_t DegreesStop, bool DrawCompleteCircle, uint16_t BackgroundColor, uint16_t ForegroundColor, uint16_t MinValue, uint16_t MaxValue, uint16_t Value, bool IsTransparent);
+        GUIGauge(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Radius, uint16_t screenNumber, uint16_t DegreesStart, uint16_t DegreesStop, bool DrawCompleteCircle, uint16_t BackgroundColor, uint16_t ForegroundColor, uint16_t MinValue, uint16_t MaxValue, uint16_t Value, bool IsTransparent);
         ~GUIGauge() {};
         uint16_t Radius;
         uint16_t DegreesStart;
@@ -102,6 +103,7 @@ class GUI
         XPT2046_Touchscreen* GetTS() { return this->touch; };       
         void RegisterElement(GUIElement* element);
         void Run();
+        uint16_t ScreenNumber = 1;
 
     private:        
         Adafruit_ILI9341* tft;
@@ -157,6 +159,39 @@ class CAN
         GUILabel* statusLabel = NULL;
 };
 
+class SniffedCANMessage
+{
+    public:
+        SniffedCANMessage() {};
+        ~SniffedCANMessage() {};
+    uint32_t ID;
+    bool IsExtended;
+    bool IsRemoteRequest;        
+    uint8_t Length;
+    
+    uint64_t Interval;    
+    uint8_t* Data[8];  
+    uint8_t DataValueCount[8];    
+};
+
+class CANSniffer
+{
+    public:
+        CANSniffer() {};
+        ~CANSniffer() {};
+        uint32_t StartingCANID = 0;
+        uint32_t StoppingCanID = 4294967296;
+        void SetCANReceiver(CAN* receiver) { this->receiver = receiver; };
+        CAN* GetCANReceiver() { return this->receiver; };
+        SniffedCANMessage* Results = NULL;
+        uint32_t ResultCount = 0;
+        bool Enabled = false;
+        void Run();
+
+    private:
+        CAN* receiver = NULL;
+};
+
 class CANFuzzer
 {
     public:
@@ -165,6 +200,8 @@ class CANFuzzer
         uint8_t Init();
         void Run();
         uint8_t AutoDetectCANSpeed();
+        CAN* GetCANReceiver() { return this->receiver; };
+        CAN* GetCANTransmitter() { return this->transmitter; };      
 
         GUILabel* statusLabel = NULL;        
 

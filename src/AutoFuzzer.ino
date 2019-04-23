@@ -1,4 +1,5 @@
 #include "AutoFuzzer.h"
+#include "Bitmaps.h"
 
 
 /* PINS CAN TX  CAN RX  TFT   TOUCH   SD CARD
@@ -12,48 +13,57 @@
  * D7   MOSI    MOSI    MOSI  MOSI    MOSI
  * D8                   CS   
  */
-void ClickHandler(uint8_t buttonCode)
+
+/* Screen Codes
+ * 0 = 
+ */
+
+
+void IconClick(uint8_t imageCode)
 {
-    switch(buttonCode)
+    switch(imageCode)
     {
         case 1:
-        case 2:
-        case 3:     
-    }
+        {
+           
+        }
+        break;
+    }  
 }
 
 GUI gui;
-CANFuzzer fuzzer;
-GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0);
-GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0);
-GUILabel buttonLabelModeSpy(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Spy Mode", 1, ILI9341_GREEN, true, NULL, 0);
-GUILabel buttonLabelModeFuzzing(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Fuzzing Mode", 1, ILI9341_GREEN, true, NULL, 0);
-GUILabel buttonLabelModeIntelligent(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, "Intelligent Mode", 1, ILI9341_GREEN, true, NULL, 0);
+GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, 0, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0);
+GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, 0, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0);
+GUIImage snifferIcon(gui.GetTFT(), gui.GetTS(), 30, 30, 50, 50, 1, SnifferImage, SnifferImageLength, IconClick, 1);
 
-// Buttons
-GUIImage spyMode(gui.GetTFT(), gui.GetTS(),0,34,100,50,&buttonLabelModeSpy,&ClickHandler,1);      
-GUIImage fuzzingMode(gui.GetTFT(), gui.GetTS(),0,34,100,50,&buttonLabelModeFuzzing,&ClickHandler,2);      
-GUIImage intelligentFuzzerMode(gui.GetTFT(), gui.GetTS(),0,34,100,50,&buttonLabelModeIntelligent,&ClickHandler,2);      
+CANFuzzer fuzzer;
+CANSniffer sniffer;
+
 void setup() 
 {
     system_update_cpu_freq(160);
-    
-    fuzzer.statusLabel = &statusLabel;
-    
+
+    gui.ScreenNumber = 9999999999;
+    fuzzer.statusLabel = &statusLabel;    
     gui.RegisterElement(&titleLabel);
     gui.RegisterElement(&statusLabel);
+    gui.RegisterElement(&snifferIcon);
     gui.Run();
     
-    Serial.begin(250000);
-    if(fuzzer.Init() == 0){ 
-       fuzzer.AutoDetectCANSpeed();
-    };
-    
+    //Serial.begin(250000);
+    //Serial.println("\n\nCAN-Bus Fuzzer\n");
+    //Serial.print("Initialising...");
+   
+   if (fuzzer.Init() != 0) while(true) yield();
+   sniffer.SetCANReceiver(fuzzer.GetCANReceiver());
+   fuzzer.AutoDetectCANSpeed();
+   gui.ScreenNumber = 1;
 }
 
 void loop() 
 {
     gui.Run();
+    sniffer.Run();
     fuzzer.Run();     
     yield();
 }

@@ -3,7 +3,7 @@
 
 // GUIElement --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-GUIElement::GUIElement(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height)
+GUIElement::GUIElement(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber)
 {
     this->tft = tft;
     this->touch = touch;
@@ -11,11 +11,12 @@ GUIElement::GUIElement(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16
     this->Y = y;
     this->Width = width;
     this->Height = height;
+    this->ScreenNumber = screenNumber;
 }
 
 // GUILabel --------------------------------------------------------------------------------------------------------------------------------------------------------
-GUILabel::GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
-    :GUIElement(tft, touch, X, Y, Width, Height)
+GUILabel::GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t screenNumber, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
+    :GUIElement(tft, touch, X, Y, Width, Height, screenNumber)
 {
     this->Text = text;
     this->Size = size;
@@ -61,10 +62,11 @@ void GUILabel::Run(TS_Point* clickPoint)
 
 
 // GUIImage --------------------------------------------------------------------------------------------------------------------------------------------------------
-GUIImage::GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, GUILabel* Desc, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
-    :GUIElement(tft, touch, X, Y, Width, Height)
+GUIImage::GUIImage(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t screenNumber, const uint8_t* Image, uint16_t ImageLength, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
+    :GUIElement(tft, touch, X, Y, Width, Height, screenNumber)
 {
-    this->Desc = Desc;
+    this->Image = Image;
+    this->ImageLength = ImageLength;
     this->ClickHandler = ClickHandler;
     this->callBackCode = callBackCode;
 }
@@ -88,27 +90,42 @@ void GUIImage::Run(TS_Point* clickPoint)
                 this->ClickHandler(this->callBackCode);
                 this->clickInProgress = true;
                 this->needsRedrawing = true;
+                this->imageClicked = !this->imageClicked;
             }        
         }
     }
     
     if (this->needsRedrawing)
     {
+        if(!this->imageClicked) 
+        {
         uint32_t pos = 0;
         for(uint16_t y = 0; y < this->Height; y++)
             for(uint16_t x = 0; x < this->Width; x++)
             {
-                uint16_t color = ILI9341_WHITE;
+                uint16_t color = pgm_read_byte(this->Image + pos++) << 8 | pgm_read_byte(this->Image + pos++);
                 tft->drawPixel((X+x), (Y+y), color); 
             }
         this->needsRedrawing = false;
+        } else
+        {
+        uint32_t pos = 0;
+        for(uint16_t y = 0; y < this->Height; y++)
+            for(uint16_t x = 0; x < this->Width; x++)
+            {
+                uint16_t color = pgm_read_byte(this->Image + pos++) << 8 | pgm_read_byte(this->Image + pos++);
+                uint16_t grayscale = turnToGrayScale(color);
+                tft->drawPixel((X+x), (Y+y), grayscale); 
+            }
+        this->needsRedrawing = false;
+        }
     }
 }
 
 // GUIGauge --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-GUIGauge::GUIGauge(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Radius, uint16_t DegreesStart, uint16_t DegreesStop, bool DrawCompleteCircle, uint16_t BackgroundColor, uint16_t ForegroundColor, uint16_t MinValue, uint16_t MaxValue, uint16_t Value, bool IsTransparent)
-    :GUIElement(tft, touch, X, Y, Radius * 2, Radius * 2)
+GUIGauge::GUIGauge(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Radius, uint16_t screenNumber, uint16_t DegreesStart, uint16_t DegreesStop, bool DrawCompleteCircle, uint16_t BackgroundColor, uint16_t ForegroundColor, uint16_t MinValue, uint16_t MaxValue, uint16_t Value, bool IsTransparent)
+    :GUIElement(tft, touch, X, Y, Radius * 2, Radius * 2, screenNumber)
 {
     this->Radius = Radius;
     this->DegreesStart = DegreesStart;
@@ -189,7 +206,7 @@ GUI::GUI()
     this->touch->setRotation(3);    
     this->drawScreen(); 
     EEPROM.begin(4096);
-    uint16_t pos = 0;   
+    uint16_t pos = 0;
     if (EEPROM.read(pos++) == 0xAB && EEPROM.read(pos++) == 0xCD)
     {
         vi1 = (EEPROM.read(pos++) << 8) | EEPROM.read(pos++);
@@ -280,18 +297,19 @@ void GUI::Run()
         //this->tft->drawPixel(p.x, p.y, ILI9341_WHITE);
     }  
     for(uint16_t i = 0; i < this->elementCount; i++)
-    {
-        TS_Point* elementPoint = NULL;
-        if(point != NULL && point->x >= this->elements[i]->X && point->x <= this->elements[i]->X + this->elements[i]->Width && point->y >= this->elements[i]->Y && point->y <= this->elements[i]->Y + this->elements[i]->Height)
+        if(this->elements[i]->ScreenNumber == 0 || this->elements[i]->ScreenNumber == this->ScreenNumber)
         {
-            elementPoint = new TS_Point();
-            elementPoint->x = point->x - this->elements[i]->X;
-            elementPoint->y = point->y - this->elements[i]->Y;
-            elementPoint->z = point->z;
+            TS_Point* elementPoint = NULL;
+            if(point != NULL && point->x >= this->elements[i]->X && point->x <= this->elements[i]->X + this->elements[i]->Width && point->y >= this->elements[i]->Y && point->y <= this->elements[i]->Y + this->elements[i]->Height)
+            {
+                elementPoint = new TS_Point();
+                elementPoint->x = point->x - this->elements[i]->X;
+                elementPoint->y = point->y - this->elements[i]->Y;
+                elementPoint->z = point->z;
+            }
+            this->elements[i]->Run(elementPoint);        
+            if (elementPoint) delete elementPoint;
         }
-        this->elements[i]->Run(elementPoint);        
-        if (elementPoint) delete elementPoint;
-    }
 }
 
 void GUI::drawScreen()
