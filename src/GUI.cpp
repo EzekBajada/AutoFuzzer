@@ -192,7 +192,53 @@ void GUIGauge::Run(TS_Point* clickPoint)
         this->needsRedrawing = false;
     }
 }
-
+// GUIScroll --------------------------------------------------------------------------------------------------------------------------------------------------------
+GUIScroll::GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, CANSniffer* sniffer) 
+    :GUIElement(tft, touch, X, Y, Width, Height, screenNumber)
+{   
+    this->Sniffer = sniffer;
+    this->messages = this->Sniffer->GetResults(); 
+}
+void GUIScroll::Run(TS_Point* clickPoint)
+{
+    if (clickPoint != NULL)
+    { // Handle Click
+      //  Serial.println("Touch Gauge at " + String(clickPoint->x) + ", " + String(clickPoint->y) + ", Pressure " + String(clickPoint->z));
+        if (this->clickStartPoint == NULL) // Click Starting
+        {
+            this->clickStartPoint = new TS_Point();
+            this->clickStartPoint->x = clickPoint->x;
+            this->clickStartPoint->y = clickPoint->y;
+            this->clickStartPoint->z = clickPoint->z;
+            this->lastMovement = millis();            
+        }
+        else
+        { // Click continuing
+            if (millis() - this->lastMovement >= this->MovementSpeed)
+            {
+                this->needsRedrawing = true;
+                this->lastMovement = millis(); 
+            }
+        }
+    }
+    else
+    {
+        if (this->clickStartPoint) 
+        { 
+            delete this->clickStartPoint;
+            this->clickStartPoint = NULL;
+            this->needsRedrawing = false;
+        }
+    }
+    if(this->needsRedrawing)
+    {
+        for(int i = 0; i < this->Sniffer->ResultCount; i++)
+        {
+            // GUILabel* currLabel(this->tft,this->touch,this->X,this->y)
+            // this->messages[i] = 
+        }
+    }
+}
 // GUI --------------------------------------------------------------------------------------------------------------------------------------------------------
 
 GUI::GUI()

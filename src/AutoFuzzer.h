@@ -97,13 +97,19 @@ class GUIGauge: public GUIElement
 class GUIScroll : public GUIElement
 {
     public:
-        GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber);
+        GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, CANSniffer* sniffer);
         ~GUIScroll(); 
-        GUILabel** data;
+        CANSniffer* Sniffer;
+        void Run(TS_Point* clickPoint);
+
     private:
+        bool needsRedrawing = true;
+        GUI toRegister;
+        SniffedCANMessage* messages; // array of SniffedCANMessage pointers.
         uint16_t MovementSpeed = 200;
         TS_Point* clickStartPoint = NULL;
         uint64_t lastMovement = 0;
+
 };
 class GUI
 {
@@ -194,6 +200,7 @@ class CANSniffer
         uint32_t StoppingCanID = 4294967296;
         void SetCANReceiver(CAN* receiver) { this->receiver = receiver; };
         CAN* GetCANReceiver() { return this->receiver; };
+        SniffedCANMessage* GetResults() { return this->Results; };
         SniffedCANMessage* Results = NULL;
         uint32_t ResultCount = 0;
         bool Enabled = false;
