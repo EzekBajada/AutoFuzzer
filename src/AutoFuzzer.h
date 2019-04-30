@@ -53,12 +53,15 @@ class GUIImage: public GUIElement
 class GUILabel: public GUIElement
 {
     public:
-        GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t screenNumber, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode);
+        GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t screenNumber, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode, bool hasMultiLine, uint16_t currPos);
         ~GUILabel() {};
         String Text = "";
+        String Multilines[255];
         uint8_t Size = 1;
         uint16_t Color = 0xFFFF;
         bool AutoCenter = false;
+        bool HasMultiLine = false;
+        int16_t CurrPos = 0;
         void Redraw() { this->needsRedrawing = true; };
         void Run(TS_Point* clickPoint);        
 
@@ -97,19 +100,18 @@ class GUIGauge: public GUIElement
 class GUIScroll : public GUIElement
 {
     public:
-        GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, CANSniffer* sniffer);
+        GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, String lines[255]);
         ~GUIScroll(); 
-        CANSniffer* Sniffer;
+        String Lines[255];
         void Run(TS_Point* clickPoint);
+        GUILabel* displayBlock = NULL;
 
     private:
+        uint16_t currPos = 0;
         bool needsRedrawing = true;
-        GUI toRegister;
-        SniffedCANMessage* messages; // array of SniffedCANMessage pointers.
         uint16_t MovementSpeed = 200;
         TS_Point* clickStartPoint = NULL;
         uint64_t lastMovement = 0;
-
 };
 class GUI
 {

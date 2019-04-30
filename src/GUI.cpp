@@ -15,15 +15,17 @@ GUIElement::GUIElement(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16
 }
 
 // GUILabel --------------------------------------------------------------------------------------------------------------------------------------------------------
-GUILabel::GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t screenNumber, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode)
+GUILabel::GUILabel(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t screenNumber, String text, uint8_t size, uint16_t color, bool autoCenter, void (*ClickHandler)(uint8_t imageCode), uint8_t callBackCode, bool hasmultiLine, uint16_t currPos)
     :GUIElement(tft, touch, X, Y, Width, Height, screenNumber)
 {
     this->Text = text;
-    this->Size = size;
+    this->Size = size;  
     this->Color = color;
     this->AutoCenter = autoCenter;
     this->ClickHandler = ClickHandler;
     this->callBackCode = callBackCode;
+    this->HasMultiLine = hasmultiLine; 
+    this->CurrPos = currPos;
 }
 
 void GUILabel::Run(TS_Point* clickPoint)
@@ -50,6 +52,24 @@ void GUILabel::Run(TS_Point* clickPoint)
     }
     if (this->needsRedrawing)
     {
+        if(this->HasMultiLine) // means an array of string has been passed
+        {
+        // displaying the next 10 elements from the currPos
+            for(int i=this->CurrPos;i<10;i++)
+            {
+                uint16_t y = this->Y;
+                if(this->Multilines[i] != NULL)
+                {
+                    this->tft->fillRect(this->X, y, this->Width, this->Height, 0);
+                    this->tft->setTextColor(this->Color, 0xFFFF); 
+                    this->tft->setTextSize(this->Size);
+                    int16_t x = this->X;
+                    if (this->AutoCenter) x = this->X + ((this->Width - this->X - (this->Text.length() * 6 * this->Size)) / 2);
+                    for(uint8_t j = 0; j < this->Multilines[i].length(); j++) this->tft->drawChar(x + (i * 6 * this->Size), y, this->Multilines[i][j], this->Color, 0, this->Size);
+                    y+=10;
+                }
+            }
+        }
         this->tft->fillRect(this->X, this->Y, this->Width, this->Height, 0);
         this->tft->setTextColor(this->Color, 0xFFFF); // 5x8
         this->tft->setTextSize(this->Size);
@@ -193,17 +213,23 @@ void GUIGauge::Run(TS_Point* clickPoint)
     }
 }
 // GUIScroll --------------------------------------------------------------------------------------------------------------------------------------------------------
-GUIScroll::GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, CANSniffer* sniffer) 
+GUIScroll::GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, String lines[255]) 
     :GUIElement(tft, touch, X, Y, Width, Height, screenNumber)
 {   
-    this->Sniffer = sniffer;
-    this->messages = this->Sniffer->GetResults(); 
+    for(uint8_t i = 0; i < 255; i++) this->Lines[i] = lines[i];
 }
 void GUIScroll::Run(TS_Point* clickPoint)
 {
+    for(int i=0;i<255;i++)
+    {
+        this->displayBlock->Multilines[i] = this->Lines[i];
+    }
+    if(this->needsRedrawing)
+    {
+        this->displayBlock->CurrPos = this->currPos; 
+    }
     if (clickPoint != NULL)
     { // Handle Click
-      //  Serial.println("Touch Gauge at " + String(clickPoint->x) + ", " + String(clickPoint->y) + ", Pressure " + String(clickPoint->z));
         if (this->clickStartPoint == NULL) // Click Starting
         {
             this->clickStartPoint = new TS_Point();
@@ -213,10 +239,11 @@ void GUIScroll::Run(TS_Point* clickPoint)
             this->lastMovement = millis();            
         }
         else
-        { // Click continuing
+        { // Click continuing -- Scrolled
             if (millis() - this->lastMovement >= this->MovementSpeed)
             {
                 this->needsRedrawing = true;
+                this->currPos += 10;
                 this->lastMovement = millis(); 
             }
         }
@@ -228,14 +255,6 @@ void GUIScroll::Run(TS_Point* clickPoint)
             delete this->clickStartPoint;
             this->clickStartPoint = NULL;
             this->needsRedrawing = false;
-        }
-    }
-    if(this->needsRedrawing)
-    {
-        for(int i = 0; i < this->Sniffer->ResultCount; i++)
-        {
-            // GUILabel* currLabel(this->tft,this->touch,this->X,this->y)
-            // this->messages[i] = 
         }
     }
 }

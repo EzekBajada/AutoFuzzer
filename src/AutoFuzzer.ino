@@ -32,9 +32,13 @@ void IconClick(uint8_t imageCode)
 }
 
 GUI gui;
-GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, 0, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0);
-GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, 0, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0);
+GUIScroll scroll;
+GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, 0, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0, false, 0);
+GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, 0, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0, false, 0);
+GUILabel scrollText(gui.GetTFT(), gui.GetTS(), 0, 30, 320, 8, 0, " ", 1, ILI9341_WHITE, true, NULL, 0, true, 0);
 GUIImage snifferIcon(gui.GetTFT(), gui.GetTS(), 30, 30, 50, 50, 1, SnifferImage, SnifferImageLength, IconClick, 1);
+GUILabel snifferText(gui.GetTFT(), gui.GetTS(), 0, 30, 320, 8, 0, "Sniffer", 1, ILI9341_WHITE, true, NULL, 0, false, 0);
+
 
 CANFuzzer fuzzer;
 CANSniffer sniffer;
@@ -44,10 +48,12 @@ void setup()
     system_update_cpu_freq(160);
 
     gui.ScreenNumber = 9999999999;
-    fuzzer.statusLabel = &statusLabel;    
+    fuzzer.statusLabel = &statusLabel;
+    scroll.displayBlock = &scrollText;
     gui.RegisterElement(&titleLabel);
     gui.RegisterElement(&statusLabel);
     gui.RegisterElement(&snifferIcon);
+    gui.RegisterElement(&scrollText);
     gui.Run();
     
     //Serial.begin(250000);
