@@ -49,7 +49,7 @@ uint8_t CANFuzzer::AutoDetectCANSpeed()
     {
         this->setStatus(F("Error Setting TX CAN Speed!"));
         return 2; // Error Setting TX Speed to follow RX
-    }
+    }                           
     this->setStatus(String(F("CAN Speed Detected at ")) + CAN::GetSpeedString(this->receiver->GetSpeed()) + String(F("kbps")));
 }
 

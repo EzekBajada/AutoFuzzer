@@ -36,8 +36,13 @@ GUIScroll scroll;
 GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, 0, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0, false, 0);
 GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, 0, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0, false, 0);
 GUILabel scrollText(gui.GetTFT(), gui.GetTS(), 0, 30, 320, 8, 0, " ", 1, ILI9341_WHITE, true, NULL, 0, true, 0);
+// Buttons
 GUIImage snifferIcon(gui.GetTFT(), gui.GetTS(), 30, 30, 50, 50, 1, SnifferImage, SnifferImageLength, IconClick, 1);
-GUILabel snifferText(gui.GetTFT(), gui.GetTS(), 0, 30, 320, 8, 0, "Sniffer", 1, ILI9341_WHITE, true, NULL, 0, false, 0);
+GUILabel snifferText(gui.GetTFT(), gui.GetTS(), 30, 80, 320, 8, 1, "Sniffer", 1, ILI9341_WHITE, true, NULL, 0, false, 0);
+GUIImage fuzzingIcon(gui.GetTFT(), gui.GetTS(), 30, 90, 50, 50, 1, NULL, SnifferImageLength, IconClick, 1);
+GUILabel fuzzingText(gui.GetTFT(), gui.GetTS(), 30, 140, 320, 8, 1, "Fuzzer", 1, ILI9341_WHITE, true, NULL, 0, false, 0);
+GUIImage manInMiddleIcon(gui.GetTFT(), gui.GetTS(), 30, 150, 50, 50, 1, SnifferImage, SnifferImageLength, IconClick, 1);
+GUILabel manInMiddeText(gui.GetTFT(), gui.GetTS(), 30, 200, 320, 8, 1, "Man In The Middle", 1, ILI9341_WHITE, true, NULL, 0, false, 0);
 
 
 CANFuzzer fuzzer;
