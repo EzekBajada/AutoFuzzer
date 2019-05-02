@@ -4,6 +4,7 @@ CANFuzzer::CANFuzzer()
 {
     this->transmitter = new CAN(D4);
     this->receiver = new CAN(D3);
+    this->sdCard = new SDCard(D1);
 }
 
 CANFuzzer::~CANFuzzer()
@@ -26,13 +27,18 @@ uint8_t CANFuzzer::Init()
     if (!this->receiver->Init(CAN_100KBPS)) 
     {
         this->setStatus(F("Error Initialising CAN RX!"));
-        return 1; // Error Initialising CAN RX
+        return 1;
     }
     if (!this->transmitter->Init(CAN_100KBPS))
     {
         this->setStatus(F("Error Initialising CAN TX!"));
-        return 2; // Error Initialising CAN TX
+        return 2;
     }
+    if (!this->sdCard->Init())
+    {
+        this->setStatus(F("Error Initialising SDCard!"));
+        return 3; 
+    }    
     this->setStatus(F("Initialisation successful"));
     return 0;
 }
@@ -49,7 +55,7 @@ uint8_t CANFuzzer::AutoDetectCANSpeed()
     {
         this->setStatus(F("Error Setting TX CAN Speed!"));
         return 2; // Error Setting TX Speed to follow RX
-    }                           
+    }
     this->setStatus(String(F("CAN Speed Detected at ")) + CAN::GetSpeedString(this->receiver->GetSpeed()) + String(F("kbps")));
 }
 
