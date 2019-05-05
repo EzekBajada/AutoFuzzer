@@ -1,7 +1,6 @@
 #include "AutoFuzzer.h"
 #include "Bitmaps.h"
 
-
 /* PINS CAN TX  CAN RX  TFT   TOUCH   SD CARD
  * D0                   D/C
  * D1                                 CS
@@ -30,22 +29,37 @@ void IconClick(uint8_t imageCode)
         break;
     }  
 }
+
+void BoxClick() 
+{
+  
+}
 GUI gui;
 //GUIScroll scroll(gui.GetTFT(),gui.GetTS(), 0,0,0,0, 1,lines);
+
+// Labels
 GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, 0, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0, NULL, 0, 0);
 GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, 0, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0, NULL, 0, 0);
 GUILabel scrollText(gui.GetTFT(), gui.GetTS(), 0, 30, 320, 50, 1, "", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
-// Buttons
-GUIImage snifferIcon(gui.GetTFT(), gui.GetTS(), 30, 30, 50, 50, 1, SnifferImage, SnifferImageLength, IconClick, 1);
-GUILabel snifferText(gui.GetTFT(), gui.GetTS(), 30, 80, 320, 8, 1, "Sniffer", 1, ILI9341_WHITE, true, NULL, 0, NULL, 0, 0);
-GUIImage fuzzingIcon(gui.GetTFT(), gui.GetTS(), 30, 90, 50, 50, 1, NULL, SnifferImageLength, IconClick, 1);
-GUILabel fuzzingText(gui.GetTFT(), gui.GetTS(), 30, 140, 320, 8, 1, "Fuzzer", 1, ILI9341_WHITE, true, NULL, 0, NULL, 0, 0);
-GUIImage manInMiddleIcon(gui.GetTFT(), gui.GetTS(), 30, 150, 50, 50, 1, SnifferImage, SnifferImageLength, IconClick, 1);
-GUILabel manInMiddeText(gui.GetTFT(), gui.GetTS(), 30, 200, 320, 8, 1, "Man In The Middle", 1, ILI9341_WHITE, true, NULL, 0, NULL, 0, 0);
 
+// Buttons
+GUIImage snifferIcon(gui.GetTFT(), gui.GetTS(), 30, 30, 50, 50, 2, SnifferImage, SnifferImageLength, IconClick, 1);
+GUILabel snifferText(gui.GetTFT(), gui.GetTS(), 30, 80, 320, 8, 2, "Sniffer", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
+GUIImage fuzzingIcon(gui.GetTFT(), gui.GetTS(), 30, 90, 50, 50, 2, NormalFuzzerImage, NormalFuzzerImageLength, IconClick, 1);
+GUILabel fuzzingText(gui.GetTFT(), gui.GetTS(), 30, 140, 320, 8, 2, "Fuzzer", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
+GUIImage manInMiddleIcon(gui.GetTFT(), gui.GetTS(), 30, 150, 50, 50, 2, IntelligentFuzzerImage, IntelligentFuzzerImageLength, IconClick, 1);
+GUILabel manInMiddeText(gui.GetTFT(), gui.GetTS(), 30, 200, 320, 8, 2, "Man In The Middle", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
+
+// Checkbox 
+GUICheckBox box(gui.GetTFT(), gui.GetTS(), 30, 100, 50, 50, 3, BoxClick);
+
+// Number Scroll
+//GUINumScroll numScroll(gui.GetTFT(), gui.GetTS(), 30, 100, 50, 50, 4, 4);
 
 CANFuzzer fuzzer;
 CANSniffer sniffer;
+
+long timestart;
 
 void setup() 
 {
@@ -71,8 +85,15 @@ void setup()
     
     gui.RegisterElement(&titleLabel);
     gui.RegisterElement(&statusLabel);
-//    gui.RegisterElement(&snifferIcon);
     gui.RegisterElement(&scrollText);
+    gui.RegisterElement(&snifferIcon);
+    gui.RegisterElement(&snifferText);
+    gui.RegisterElement(&fuzzingIcon);
+    gui.RegisterElement(&fuzzingText);
+    gui.RegisterElement(&manInMiddleIcon);
+    gui.RegisterElement(&manInMiddeText);
+    gui.RegisterElement(&box);
+    // gui.RegisterElement(&numScroll);
     gui.Run();
     
    
@@ -80,7 +101,13 @@ void setup()
    sniffer.SetCANReceiver(fuzzer.GetCANReceiver());
    fuzzer.AutoDetectCANSpeed();
    gui.ScreenNumber = 1;
+
+
+   sniffer.Start(123);
+   timestart = millis();
 }
+
+int i = 0;
 
 void loop() 
 {
@@ -88,4 +115,14 @@ void loop()
     sniffer.Run();
     fuzzer.Run();     
     yield();
+
+
+    i++;
+    if (i == 10000)
+    { 
+        Serial.println("stopping sniffer");
+        sniffer.Stop();
+        Serial.println("time " + String(millis() - timestart));
+        Serial.println("messages " + String(sniffer.testcounter));
+    }
 }

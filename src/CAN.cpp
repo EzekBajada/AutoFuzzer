@@ -1,5 +1,12 @@
 #include "AutoFuzzer.h"
 
+String CANMessage::ToString()
+{
+    String s = String(this->ID);
+    // the others go here
+    return s;
+}
+
 CAN::CAN(uint8_t Pin)
 {
     this->initialised = false;

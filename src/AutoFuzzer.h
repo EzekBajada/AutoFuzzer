@@ -6,6 +6,8 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 #include "XPT2046_Touchscreen.h"
+#include <string>
+
 
 extern "C" 
 {
@@ -70,7 +72,7 @@ class GUILabel: public GUIElement
         void (*ClickHandler)(uint8_t imageCode);
         uint8_t callBackCode = 0;
         bool clickInProgress = false;
-        uint16_t MovementSpeed = 200;
+        uint16_t MovementSpeed = 100;
         uint64_t lastMovement = 0;        
 };
 
@@ -115,6 +117,35 @@ class GUIGauge: public GUIElement
         uint64_t lastMovement = 0;
 };
 
+class GUICheckBox: public GUIElement
+{
+    public:
+      GUICheckBox(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, void (*ClickHandler)());
+      void Run(TS_Point* clickPoint);        
+      ~GUICheckBox(){ }
+
+    private:  
+      bool clickInProgress = false;
+      void (*ClickHandler)();
+      bool needsRedrawing = true;
+      bool boxClickedInProgress = false;
+};
+
+//class GUINumScroll: GUIElement
+//{
+//  public:
+//    GUINumScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, uint8_t currNum);
+//    ~GUINumScroll() {};
+//     void Run(TS_Point* clickPoint);
+//     
+//  private:
+//    std::ostringstream* s = new std::ostringstream;
+//    uint8_t currNum = 0;
+//    bool needsRedrawing = true;
+//    uint64_t lastMovement = 0;
+//    uint16_t MovementSpeed = 200;
+//};
+  
 class GUI
 {
     public:
@@ -158,6 +189,8 @@ class CANMessage
         uint8_t Length;
         bool IsExtended;
         bool IsRemoteRequest;
+
+        String ToString();
 };
 
 class CAN
@@ -222,21 +255,45 @@ class CANSniffer
         CAN* GetCANReceiver() { return this->receiver; };
         void SetSDCard(SDCard* sdCard) { this->sdCard = sdCard; };
         SDCard* GetSDCard() { return this->sdCard; };
-        SniffedCANMessage* GetResults() { return this->Results; };
-        SniffedCANMessage* Results = NULL;
-        uint32_t ResultCount = 0;
         bool GetEnabled() { return this->enabled; };
         bool Start(uint32_t sessionID);
         void Stop();
+        uint16_t BufferSize = 100;
+        CANMessage** Buffer = NULL;
+        bool BufferFull = false;
+
+        SniffedCANMessage* GetResults() { return this->Results; };
+        SniffedCANMessage* Results = NULL;
+        uint32_t ResultCount = 0;
         
         void Run();
 
+        int testcounter = 0;
+
     private:
+        static void processor();
+        static CANSniffer* activeSniffer;
         CAN* receiver = NULL;
         SDCard* sdCard = NULL;
         bool enabled = false;
         File file;
         uint32_t sessionID = 0;
+        CANMessage** internalBuffer = NULL;
+        uint16_t internalBufferPointer = 0;
+
+
+
+        
+//        void messageBuffer();
+//        bool checkTimer(uint8_t start, uint8_t duration);
+        uint8_t referenceTime = 0;
+        uint16_t snifferBufferSize = 0;
+        uint16_t bufferPointer = 0;
+        bool bufferFull;
+
+        
+        
+        
 };
 
 class CANFuzzer

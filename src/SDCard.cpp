@@ -10,9 +10,9 @@ bool SDCard::Init()
     this->enabled = SD.begin(this->pin); 
     if(this->enabled)
     { 
-        SD.mkdir("AutoFuzzer");   // NOT WORKING!!!
-        if (!SD.exists(F("AutoFuzzer/Sniffer"))) SD.mkdir(F("AutoFuzzer/Sniffer"));
-        if (!SD.exists(F("AutoFuzzer/Fuzzer"))) SD.mkdir(F("AutoFuzzer/Fuzzer"));
+        SD.mkdir("/AutoFuzzer");   // NOT WORKING!!!
+        if (!SD.exists(F("/AutoFuzzer/Sniffer"))) SD.mkdir(F("/AutoFuzzer/Sniffer"));
+        if (!SD.exists(F("/AutoFuzzer/Fuzzer"))) SD.mkdir(F("/AutoFuzzer/Fuzzer"));
     }
     return this->enabled;
 }
