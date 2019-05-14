@@ -29,6 +29,13 @@ File SDCard::OpenFile(String filename)
 
 bool SDCard::WriteCanMessage(File& file, CANMessage* message)
 {
-    if(!file) return false;
+    if(!file) return false;     
+    SPI.setFrequency(20000000);
     return file.write((uint8_t*) &message, sizeof(CANMessage)) == sizeof(CANMessage);
+}
+
+bool SDCard::WriteBuffer(File& file, uint8_t* buffer, uint16_t length)
+{
+    if(!file) return false;
+    return file.write(buffer, length) == length;
 }

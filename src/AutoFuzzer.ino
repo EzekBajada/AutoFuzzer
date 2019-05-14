@@ -16,15 +16,34 @@
 /* Screen Codes
  * 0 = 
  */
-
-
+CANSniffer sniffer;
+CANFuzzer fuzzer;
 void IconClick(uint8_t imageCode)
 {
     switch(imageCode)
     {
         case 1:
         {
-           
+          int i=0;
+          while(i != 100000)
+          {
+             sniffer.Start(123);
+             sniffer.Run(); 
+             i++;
+          }
+            Serial.println("stopping sniffer");
+            sniffer.Stop(); 
+        }
+        break;
+        case 2:
+        {
+          fuzzer.Analyse(sniffer.GetFile(),123);
+        }
+        break;
+        case 3:
+        {
+          // Set the settings here for the fuzzer. 
+          fuzzer.Run();
         }
         break;
     }  
@@ -35,6 +54,7 @@ void BoxClick()
   
 }
 GUI gui;
+SDCard sdc;
 //GUIScroll scroll(gui.GetTFT(),gui.GetTS(), 0,0,0,0, 1,lines);
 
 // Labels
@@ -54,10 +74,7 @@ GUILabel manInMiddeText(gui.GetTFT(), gui.GetTS(), 30, 200, 320, 8, 2, "Man In T
 GUICheckBox box(gui.GetTFT(), gui.GetTS(), 30, 100, 50, 50, 3, BoxClick);
 
 // Number Scroll
-//GUINumScroll numScroll(gui.GetTFT(), gui.GetTS(), 30, 100, 50, 50, 4, 4);
-
-CANFuzzer fuzzer;
-CANSniffer sniffer;
+GUINumScroll numScroll(gui.GetTFT(), gui.GetTS(), 30, 100, 50, 50, 4, 0);
 
 long timestart;
 
@@ -82,7 +99,8 @@ void setup()
     scrollText.Lines[4] = new String("Fifth Line");
     scrollText.Lines[5] = new String("Sixth Line");
     scrollText.Lines[6] = new String("Seventh Line");
-    
+
+    // Register the elements
     gui.RegisterElement(&titleLabel);
     gui.RegisterElement(&statusLabel);
     gui.RegisterElement(&scrollText);
@@ -93,17 +111,14 @@ void setup()
     gui.RegisterElement(&manInMiddleIcon);
     gui.RegisterElement(&manInMiddeText);
     gui.RegisterElement(&box);
-    // gui.RegisterElement(&numScroll);
+    gui.RegisterElement(&numScroll);
     gui.Run();
     
    
    if (fuzzer.Init() != 0) while(true) yield();
    sniffer.SetCANReceiver(fuzzer.GetCANReceiver());
    fuzzer.AutoDetectCANSpeed();
-   gui.ScreenNumber = 1;
-
-
-   sniffer.Start(123);
+   gui.ScreenNumber = 2;
    timestart = millis();
 }
 
@@ -112,17 +127,4 @@ int i = 0;
 void loop() 
 {
     gui.Run();
-    sniffer.Run();
-    fuzzer.Run();     
-    yield();
-
-
-    i++;
-    if (i == 10000)
-    { 
-        Serial.println("stopping sniffer");
-        sniffer.Stop();
-        Serial.println("time " + String(millis() - timestart));
-        Serial.println("messages " + String(sniffer.testcounter));
-    }
 }

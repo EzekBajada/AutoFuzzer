@@ -7,24 +7,29 @@ void ICACHE_RAM_ATTR CANSniffer::processor()
     if (CANSniffer::activeSniffer == NULL || CANSniffer::activeSniffer->internalBuffer == NULL || CANSniffer::activeSniffer->Buffer == NULL) return;  
     CANMessage* message = CANSniffer::activeSniffer->receiver->Receive();
     if (message)
-    {
-        ++CANSniffer::activeSniffer->internalBufferPointer;
-        if (CANSniffer::activeSniffer->internalBufferPointer >= CANSniffer::activeSniffer->BufferSize)
+    {        
+        if (CANSniffer::activeSniffer->internalBufferPointer + 1 >= CANSniffer::activeSniffer->BufferSize)
         {
-            if (CANSniffer::activeSniffer->BufferFull)
-            { 
-                Serial.println("Buffer Overrun!");
-                for(uint16_t i = 0; i < CANSniffer::activeSniffer->BufferSize; i++)        
-                    if (CANSniffer::activeSniffer->internalBuffer[i] != NULL) delete CANSniffer::activeSniffer->internalBuffer[i];
+            for(uint16_t i = 0; i < CANSniffer::activeSniffer->BufferSize; i++)      
+            {
+                if (CANSniffer::activeSniffer->Buffer[i]) 
+                {
+                    delete CANSniffer::activeSniffer->Buffer[i];
+                    CANSniffer::activeSniffer->Buffer[i] = NULL;
+                }
+            }
+            if(memcpy(CANSniffer::activeSniffer->Buffer, CANSniffer::activeSniffer->internalBuffer, sizeof(CANMessage*) * CANSniffer::activeSniffer->BufferSize))
+            {
+                //Serial.println("Buffer Copied");
+                CANSniffer::activeSniffer->BufferFull = true;
             }
             else
             {
-                memcpy(CANSniffer::activeSniffer->Buffer, CANSniffer::activeSniffer->internalBuffer, sizeof(CANMessage*) * CANSniffer::activeSniffer->BufferSize);
-                CANSniffer::activeSniffer->BufferFull = true;
+                Serial.println("Error copying buffer!");
             }
             CANSniffer::activeSniffer->internalBufferPointer = 0;
         }
-        CANSniffer::activeSniffer->internalBuffer[CANSniffer::activeSniffer->internalBufferPointer] = message;
+        CANSniffer::activeSniffer->internalBuffer[CANSniffer::activeSniffer->internalBufferPointer++] = message;        
     }    
     timer0_write(ESP.getCycleCount() + 160000);  // 1ms   
 }
@@ -34,13 +39,14 @@ bool CANSniffer::Start(uint32_t sessionID)
     if (this->enabled) return false;
     this->sessionID = sessionID;
    // this->file = this->sdCard->CreateFile(String(F("AutoFuzzer/Sniffer/")) + String(this->sessionID) + String(F(".Sniffed")));
-    this->file = this->sdCard->CreateFile(String(F("myfile")));
+    this->file = this->sdCard->CreateFile(String(F("Sniffed"))+String(this->sessionID));
     if (!this->file) Serial.println("ERROR");
-    if (this->file) this->enabled = true; else this->enabled = false;
+    if (this->file) this->enabled = true; else this->enabled = false;/*
     if (this->enabled)
     {
         this->internalBuffer = (CANMessage**) malloc(sizeof(CANMessage*) * this->BufferSize);
         this->Buffer = (CANMessage**) malloc(sizeof(CANMessage*) * this->BufferSize);
+        for(uint16_t i = 0; i < this->BufferSize; i++)this->Buffer[i] = NULL;
         this->BufferFull = false;
         CANSniffer::activeSniffer = this;
         this->internalBufferPointer = 0;
@@ -49,36 +55,62 @@ bool CANSniffer::Start(uint32_t sessionID)
         timer0_attachInterrupt(processor);
         timer0_write(ESP.getCycleCount() + 160000);  // 1ms   
         interrupts(); 
-    }
+    }*/
     return this->enabled;
 }
 
 void CANSniffer::Stop()
 {
-    timer0_detachInterrupt();
+//    timer0_detachInterrupt();
     if (this->file) this->file.close();
     this->sessionID = 0;
     CANSniffer::activeSniffer = NULL;   
-    this->BufferFull = false; 
+/*    this->BufferFull = false; 
+    
     if (this->internalBuffer)
     {
-        for(uint16_t i = 0; i < this->BufferSize; i++)        
-            if (this->internalBuffer[i] != NULL) delete this->internalBuffer[i];            
-        free(this->internalBuffer);
+        for(uint16_t i = 0; i < this->BufferSize; i++)
+        {
+            if (this->internalBuffer[i]) delete this->internalBuffer[i];      
+        }
+        free(this->internalBuffer);        
     }
-    this->internalBuffer = NULL;
+    this->internalBuffer = NULL;      
+    
     if (this->Buffer)
     {
-        for(uint16_t i = 0; i < this->BufferSize; i++)        
-            if (this->Buffer[i] != NULL) delete this->Buffer[i];            
-        free(this->Buffer);
+       free(this->Buffer);
     }
-    this->Buffer = NULL;
-    this->enabled = false;
+    this->Buffer = NULL;*/
+    this->enabled = false;    
 }
 
+static long lastTime = 0;
+
 void CANSniffer::Run()
-{
+{  
+    
+    if (this->enabled)
+    {
+        CANMessage* message = this->receiver->Receive();
+        if (message)
+        {
+            
+            if (message->ID == 0x0AA) 
+            {
+                long now = millis();
+                Serial.println(now - lastTime);
+                lastTime = now;
+            }
+            
+            if (!this->sdCard->WriteCanMessage(this->file, message)) Serial.println("WRITE FAILED!!!"); // DEBUG
+            delete message;
+        }
+        
+    }
+    
+
+  /*
     if (this->enabled)
     {
         if (this->Buffer != NULL && this->BufferFull)
@@ -87,33 +119,19 @@ void CANSniffer::Run()
             {
                 CANMessage* message = this->Buffer[i];
                 if (message)
-                {
-                
-                    Serial.println(message->ID);
-        
+                {               
+                    if (!this->sdCard->WriteCanMessage(this->file, message))
+                    {
+                        Serial.println("WRITE FAILED!!!"); // DEBUG
+                    }
                     delete message;
                     this->Buffer[i] = NULL;
                 }
             }
             this->BufferFull = false;
-        }
-      /*
-        CANMessage* message = this->receiver->Receive();
-        if (message)
-        {
-            
-            if (!this->sdCard->WriteCanMessage(this->file, message))
-            {
-                Serial.println("WRITE FAILED!!!"); // DEBUG
-            }
-            if (message->ID == 0x0AA)
-            {
-                testcounter++;
-            }
-            this->bufferPointer++;
-            delete message; // To move and be called when buffer is full not with every message
-        }*/
-    }  
+
+        }  
+    }*/
 }
 /*
 void CANSniffer::messageBuffer(CANMessage* message)

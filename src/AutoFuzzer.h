@@ -6,7 +6,7 @@
 #include "Adafruit_GFX.h"
 #include "Adafruit_ILI9341.h"
 #include "XPT2046_Touchscreen.h"
-#include <string>
+
 
 
 extern "C" 
@@ -131,20 +131,21 @@ class GUICheckBox: public GUIElement
       bool boxClickedInProgress = false;
 };
 
-//class GUINumScroll: GUIElement
-//{
-//  public:
-//    GUINumScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, uint8_t currNum);
-//    ~GUINumScroll() {};
-//     void Run(TS_Point* clickPoint);
-//     
-//  private:
-//    std::ostringstream* s = new std::ostringstream;
-//    uint8_t currNum = 0;
-//    bool needsRedrawing = true;
-//    uint64_t lastMovement = 0;
-//    uint16_t MovementSpeed = 200;
-//};
+class GUINumScroll: public GUIElement
+{
+  public:
+    GUINumScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, uint8_t currNum);
+    ~GUINumScroll() {};
+    void Run(TS_Point* clickPoint);
+     
+  private:
+    TS_Point* clickStartPoint = NULL; 
+    uint8_t currNum = 0;
+    bool needsRedrawing = true;
+    uint64_t lastMovement = 0;
+    uint16_t MovementSpeed = 100;
+    String numString = "";
+};
   
 class GUI
 {
@@ -183,6 +184,7 @@ class CANMessage
             this->IsRemoteRequest = 0;
             for(uint8_t i = 0; i < 8; i++) this->Data[i] = 0;            
         };
+        ~CANMessage() {};
         uint64_t Timestamp;
         uint32_t ID;
         uint8_t Data[8];  
@@ -191,6 +193,7 @@ class CANMessage
         bool IsRemoteRequest;
 
         String ToString();
+        
 };
 
 class CAN
@@ -217,12 +220,14 @@ class SDCard
 {
     public:
         SDCard(uint8_t pin);
+        SDCard() {};
         ~SDCard() {};
         bool Init();
         bool IsEnabled() { return this->enabled; };
         File CreateFile(String filename);
         File OpenFile(String filename);
         bool WriteCanMessage(File& file, CANMessage* message);
+        bool WriteBuffer(File& file, uint8_t* buffer, uint16_t length);
 
     private:
         uint8_t pin;
@@ -256,11 +261,14 @@ class CANSniffer
         void SetSDCard(SDCard* sdCard) { this->sdCard = sdCard; };
         SDCard* GetSDCard() { return this->sdCard; };
         bool GetEnabled() { return this->enabled; };
+        File GetFile() {return this->file;};
         bool Start(uint32_t sessionID);
         void Stop();
-        uint16_t BufferSize = 100;
+        uint16_t BufferSize = 20;
         CANMessage** Buffer = NULL;
         bool BufferFull = false;
+        uint16_t internalBufferPointer = 0;
+        bool modeSelected = false;
 
         SniffedCANMessage* GetResults() { return this->Results; };
         SniffedCANMessage* Results = NULL;
@@ -268,7 +276,6 @@ class CANSniffer
         
         void Run();
 
-        int testcounter = 0;
 
     private:
         static void processor();
@@ -279,11 +286,9 @@ class CANSniffer
         File file;
         uint32_t sessionID = 0;
         CANMessage** internalBuffer = NULL;
-        uint16_t internalBufferPointer = 0;
-
-
-
         
+        
+        uint16_t counterBuffer = 0;
 //        void messageBuffer();
 //        bool checkTimer(uint8_t start, uint8_t duration);
         uint8_t referenceTime = 0;
@@ -307,12 +312,14 @@ class CANFuzzer
         CAN* GetCANReceiver() { return this->receiver; };
         CAN* GetCANTransmitter() { return this->transmitter; };   
         SDCard* GetSDCard() { return this->sdCard; };
-
+        void Analyse(File file, uint32_t sessionID);
         GUILabel* statusLabel = NULL;        
 
     private:
         CAN* transmitter;
         CAN* receiver;
         SDCard* sdCard;
+        uint32_t sessionID = 0;
+        bool enabled = false;
         void setStatus(String status);
 };

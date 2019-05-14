@@ -59,6 +59,13 @@ uint8_t CANFuzzer::AutoDetectCANSpeed()
     this->setStatus(String(F("CAN Speed Detected at ")) + CAN::GetSpeedString(this->receiver->GetSpeed()) + String(F("kbps")));
 }
 
+void CANFuzzer::Analyse(File file, uint32_t sessionID)
+{
+    this->sessionID = sessionID;
+    file = this->sdCard->CreateFile(String(F("Analysed"))+String(this->sessionID));
+    if (!file) Serial.println("ERROR");
+    if (file) this->enabled = true; else this->enabled = false;
+}
 void CANFuzzer::Run()
 {
     
