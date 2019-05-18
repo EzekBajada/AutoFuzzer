@@ -18,7 +18,8 @@ bool SDCard::Init()
 }
 
 File SDCard::CreateFile(String filename)
-{
+{    
+    SD.remove(filename);
     return SD.open(filename, FILE_WRITE);
 }
 

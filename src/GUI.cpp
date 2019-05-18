@@ -140,7 +140,7 @@ void GUIImage::Run(TS_Point* clickPoint)
                 tft->drawPixel((X+x), (Y+y), color); 
             }
         this->needsRedrawing = false;
-        } else
+        } else if (this->imageClicked || this->inClickHandler)
         {
         uint32_t pos = 0;
         for(uint16_t y = 0; y < this->Height; y++)
@@ -226,10 +226,11 @@ void GUIGauge::Run(TS_Point* clickPoint)
     }
 }
 // GUICheckBox ------------------------------------------------------------------------------------------------------------------------------------------------
-GUICheckBox::GUICheckBox(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, void (*ClickHandler)())
+GUICheckBox::GUICheckBox(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, void (*ClickHandler)(uint8_t boxCode), uint8_t boxCode)
   :GUIElement(tft, touch, x, y, width, height, screenNumber)
 {
     this->ClickHandler = ClickHandler;
+    this->boxCode = boxCode;
 }
 void GUICheckBox::Run(TS_Point* clickPoint)
 {
@@ -245,16 +246,15 @@ void GUICheckBox::Run(TS_Point* clickPoint)
     {   
         if (!this->clickInProgress)
         {    
-            Serial.println("Entered"); 
-            this->ClickHandler();
+            this->ClickHandler(this->boxCode);
             this->clickInProgress = true;
             this->needsRedrawing = true;
-            this->boxClickedInProgress = !(this->boxClickedInProgress);
+            this->BoxClickedInProgress = !(this->BoxClickedInProgress);
         }        
     }
   if(this->needsRedrawing)
   {
-    if(!this->boxClickedInProgress)
+    if(!this->BoxClickedInProgress)
     {
       this->tft->fillRect(this->X,this->Y,this->Width,this->Height,ILI9341_BLACK);
       this->tft->drawRect(this->X,this->Y,this->Width,this->Height,ILI9341_WHITE);
@@ -271,7 +271,7 @@ void GUICheckBox::Run(TS_Point* clickPoint)
 GUINumScroll::GUINumScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, uint8_t currNum)
   :GUIElement(tft, touch, x, y, width, height, screenNumber)
 {
-  this->currNum = currNum;
+  this->CurrNum = currNum;
 }
 
 void GUINumScroll::Run(TS_Point* clickPoint)
@@ -293,11 +293,11 @@ void GUINumScroll::Run(TS_Point* clickPoint)
                 this->needsRedrawing = true;
                 if (this->clickStartPoint->y < clickPoint->y) 
                 {
-                    if (this->currNum > 0) this->currNum--; 
+                    if (this->CurrNum > 0) this->CurrNum--; 
                 }
-                else if(!(this->currNum == 9))
+                else if(!(this->CurrNum == 9))
                 {
-                    this->currNum++; // ADD VALIDATION
+                    this->CurrNum++; // ADD VALIDATION
                 }
                 this->lastMovement = millis(); 
                 
@@ -315,7 +315,7 @@ void GUINumScroll::Run(TS_Point* clickPoint)
     }
   if(this->needsRedrawing)
   {
-    this->numString = String(this->currNum);
+    this->numString = String(this->CurrNum);
     for(int i=0;i<this->numString.length();i++)this->tft->drawChar(this->X, this->Y, this->numString[i], ILI9341_WHITE, 0, 2);
   }
 }
@@ -490,4 +490,9 @@ uint16_t GUIElement::turnToGrayScale(uint16_t color)
    sum += (color & 0b0000000000011111) * 255 / 31;    
    sum /= 3;  
    return ((sum & 0xF8) << 8) | ((sum & 0xFC) << 3) | (sum >> 3);
+}
+
+void GUI::turnToBlack(uint16_t x, uint16_t y,  uint16_t width, uint16_t height)
+{
+  this->tft->fillRect(x,y,width,height,ILI9341_BLACK);
 }

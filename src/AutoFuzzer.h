@@ -31,6 +31,7 @@ class GUIElement
     protected:
         void fillArc(uint16_t x, uint16_t y, uint16_t start_angle, uint16_t end_angle, uint16_t radiusX, uint16_t radiusY, uint16_t width, uint16_t colour);
         uint16_t turnToGrayScale(uint16_t color);
+        
 };
 
 class GUIImage: public GUIElement
@@ -41,6 +42,7 @@ class GUIImage: public GUIElement
         const uint8_t* Image;
         uint16_t ImageLength;
         void Run(TS_Point* clickPoint);        
+        bool inClickHandler = false;
 
     private:
         TS_Point* clickStartPoint = NULL;
@@ -76,23 +78,6 @@ class GUILabel: public GUIElement
         uint64_t lastMovement = 0;        
 };
 
-class GUIScroll : public GUIElement
-{
-    public:
-        GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, String lines[255]);
-        ~GUIScroll() { }; 
-        String Lines[255]; // USE POINTER? 
-        void Run(TS_Point* clickPoint);
-        GUILabel* displayBlock = NULL;
-
-    private:
-        uint16_t currPos = 0;
-        bool needsRedrawing = true;
-        uint16_t MovementSpeed = 200;
-        TS_Point* clickStartPoint = NULL;
-        uint64_t lastMovement = 0;
-};
-
 class GUIGauge: public GUIElement
 {
     public:
@@ -120,15 +105,17 @@ class GUIGauge: public GUIElement
 class GUICheckBox: public GUIElement
 {
     public:
-      GUICheckBox(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, void (*ClickHandler)());
+      GUICheckBox(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, void (*ClickHandler)(uint8_t boxCode), uint8_t boxCode);
       void Run(TS_Point* clickPoint);        
       ~GUICheckBox(){ }
+       bool BoxClickedInProgress = false;
 
     private:  
+      uint8_t boxCode = 0;
       bool clickInProgress = false;
-      void (*ClickHandler)();
+      void (*ClickHandler)(uint8_t boxCode);
       bool needsRedrawing = true;
-      bool boxClickedInProgress = false;
+     
 };
 
 class GUINumScroll: public GUIElement
@@ -137,10 +124,11 @@ class GUINumScroll: public GUIElement
     GUINumScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, uint8_t currNum);
     ~GUINumScroll() {};
     void Run(TS_Point* clickPoint);
+    uint8_t CurrNum = 0;
      
   private:
     TS_Point* clickStartPoint = NULL; 
-    uint8_t currNum = 0;
+    
     bool needsRedrawing = true;
     uint64_t lastMovement = 0;
     uint16_t MovementSpeed = 100;
@@ -157,6 +145,7 @@ class GUI
         void RegisterElement(GUIElement* element);
         void Run();
         uint16_t ScreenNumber = 1;
+        void turnToBlack(uint16_t x, uint16_t y,  uint16_t width, uint16_t height);
 
     private:        
         Adafruit_ILI9341* tft;
@@ -259,10 +248,11 @@ class CANSniffer
         void SetCANReceiver(CAN* receiver) { this->receiver = receiver; };
         CAN* GetCANReceiver() { return this->receiver; };
         void SetSDCard(SDCard* sdCard) { this->sdCard = sdCard; };
+        void SetSessionID(uint32_t sessionID){ this->sessionID = sessionID;};
         SDCard* GetSDCard() { return this->sdCard; };
         bool GetEnabled() { return this->enabled; };
         File GetFile() {return this->file;};
-        bool Start(uint32_t sessionID);
+        bool Start();
         void Stop();
         uint16_t BufferSize = 20;
         CANMessage** Buffer = NULL;
@@ -278,13 +268,12 @@ class CANSniffer
 
 
     private:
-        static void processor();
         static CANSniffer* activeSniffer;
         CAN* receiver = NULL;
         SDCard* sdCard = NULL;
         bool enabled = false;
         File file;
-        uint32_t sessionID = 0;
+        String sessionID = "";
         CANMessage** internalBuffer = NULL;
         
         
@@ -312,6 +301,7 @@ class CANFuzzer
         CAN* GetCANReceiver() { return this->receiver; };
         CAN* GetCANTransmitter() { return this->transmitter; };   
         SDCard* GetSDCard() { return this->sdCard; };
+        void SetSessionID(String sessionID){ this->sessionID = sessionID;};
         void Analyse(File file, uint32_t sessionID);
         GUILabel* statusLabel = NULL;        
 
@@ -319,7 +309,7 @@ class CANFuzzer
         CAN* transmitter;
         CAN* receiver;
         SDCard* sdCard;
-        uint32_t sessionID = 0;
+        String sessionID = "";
         bool enabled = false;
         void setStatus(String status);
 };

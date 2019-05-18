@@ -18,16 +18,23 @@
  */
 CANSniffer sniffer;
 CANFuzzer fuzzer;
-void IconClick(uint8_t imageCode)
+GUI gui;
+// Number Scroll
+GUINumScroll numScroll(gui.GetTFT(), gui.GetTS(), 30, 30, 20, 20, 4, 0);
+GUINumScroll numScroll2(gui.GetTFT(), gui.GetTS(), 70, 30, 20, 20, 4, 0);
+GUINumScroll numScroll3(gui.GetTFT(), gui.GetTS(), 110, 30, 20, 20, 4, 0);
+
+
+ void IconClick(uint8_t imageCode)
 {
     switch(imageCode)
     {
         case 1:
         {
           int i=0;
+          sniffer.Start();
           while(i != 100000)
           {
-             sniffer.Start(123);
              sniffer.Run(); 
              i++;
           }
@@ -37,7 +44,7 @@ void IconClick(uint8_t imageCode)
         break;
         case 2:
         {
-          fuzzer.Analyse(sniffer.GetFile(),123);
+          fuzzer.Analyse(sniffer.GetFile(), 123);
         }
         break;
         case 3:
@@ -46,35 +53,53 @@ void IconClick(uint8_t imageCode)
           fuzzer.Run();
         }
         break;
+        case 4:
+        {
+          gui.GetTFT()->fillRect(30,30,50,50,ILI9341_BLACK);
+          gui.ScreenNumber = 4;
+        }
+        break;
     }  
 }
 
-void BoxClick() 
+void BoxClick(uint8_t boxCode) 
 {
-  
+  switch(boxCode)
+  {
+    case 1:
+    {
+      String wholeNum = String(numScroll.CurrNum) + String(numScroll2.CurrNum) + String(numScroll3.CurrNum);
+      fuzzer.SetSessionID(wholeNum); 
+    }
+    break;  
+    case 2:
+    {
+      
+    }
+    break;
+  }
 }
-GUI gui;
 SDCard sdc;
-//GUIScroll scroll(gui.GetTFT(),gui.GetTS(), 0,0,0,0, 1,lines);
+
+// Checkbox
+GUICheckBox boxForNum(gui.GetTFT(), gui.GetTS(), 160, 30, 20, 20, 4, BoxClick, 1);
 
 // Labels
 GUILabel titleLabel(gui.GetTFT(), gui.GetTS(), 0, 0, 320, 16, 0, "Auto Fuzzer", 2, 0xFFFF, true, NULL, 0, NULL, 0, 0);
 GUILabel statusLabel(gui.GetTFT(), gui.GetTS(), 0, 17, 320, 8, 0, "Initialising...", 1, ILI9341_GREEN, true, NULL, 0, NULL, 0, 0);
 GUILabel scrollText(gui.GetTFT(), gui.GetTS(), 0, 30, 320, 50, 1, "", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
-
+GUILabel sessionLabel(gui.GetTFT(), gui.GetTS(), 190, 30, 50, 50, 4, "Session ID", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
+GUIImage settingsIcon(gui.GetTFT(), gui.GetTS(), 30, 30, 50, 50, 6, SnifferImage, SnifferImageLength, IconClick, 4);
 // Buttons
 GUIImage snifferIcon(gui.GetTFT(), gui.GetTS(), 30, 30, 50, 50, 2, SnifferImage, SnifferImageLength, IconClick, 1);
 GUILabel snifferText(gui.GetTFT(), gui.GetTS(), 30, 80, 320, 8, 2, "Sniffer", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
-GUIImage fuzzingIcon(gui.GetTFT(), gui.GetTS(), 30, 90, 50, 50, 2, NormalFuzzerImage, NormalFuzzerImageLength, IconClick, 1);
-GUILabel fuzzingText(gui.GetTFT(), gui.GetTS(), 30, 140, 320, 8, 2, "Fuzzer", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
-GUIImage manInMiddleIcon(gui.GetTFT(), gui.GetTS(), 30, 150, 50, 50, 2, IntelligentFuzzerImage, IntelligentFuzzerImageLength, IconClick, 1);
-GUILabel manInMiddeText(gui.GetTFT(), gui.GetTS(), 30, 200, 320, 8, 2, "Man In The Middle", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
+GUIImage fuzzingIcon(gui.GetTFT(), gui.GetTS(), 30, 90, 50, 50, 2, NormalFuzzerImage, NormalFuzzerImageLength, IconClick, 2);
+GUILabel fuzzingText(gui.GetTFT(), gui.GetTS(), 30, 140, 320, 8, 2, "Analyze", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
+GUIImage manInMiddleIcon(gui.GetTFT(), gui.GetTS(), 30, 150, 50, 50, 2, IntelligentFuzzerImage, IntelligentFuzzerImageLength, IconClick, 3);
+GUILabel manInMiddeText(gui.GetTFT(), gui.GetTS(), 30, 200, 320, 8, 2, "Fuzz!", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
 
-// Checkbox 
-GUICheckBox box(gui.GetTFT(), gui.GetTS(), 30, 100, 50, 50, 3, BoxClick);
 
-// Number Scroll
-GUINumScroll numScroll(gui.GetTFT(), gui.GetTS(), 30, 100, 50, 50, 4, 0);
+
 
 long timestart;
 
@@ -110,15 +135,20 @@ void setup()
     gui.RegisterElement(&fuzzingText);
     gui.RegisterElement(&manInMiddleIcon);
     gui.RegisterElement(&manInMiddeText);
-    gui.RegisterElement(&box);
+    gui.RegisterElement(&settingsIcon);
+    gui.RegisterElement(&boxForNum);
     gui.RegisterElement(&numScroll);
+    gui.RegisterElement(&numScroll2);
+    gui.RegisterElement(&numScroll3);
+    gui.RegisterElement(&sessionLabel);
+    
     gui.Run();
     
    
-   if (fuzzer.Init() != 0) while(true) yield();
+  // if (fuzzer.Init() != 0) while(true) yield();
    sniffer.SetCANReceiver(fuzzer.GetCANReceiver());
    fuzzer.AutoDetectCANSpeed();
-   gui.ScreenNumber = 2;
+   gui.ScreenNumber = 6;
    timestart = millis();
 }
 
