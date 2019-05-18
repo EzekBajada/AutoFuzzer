@@ -43,7 +43,7 @@ void GUILabel::Run(TS_Point* clickPoint)
         }
         else
         { // Click continuing -- Scrolled                
-            if (millis() - this->lastMovement >= this->MovementSpeed) 
+            if (millis() - this->lastMovement >= this->MovementSpeed) // TO DO NEEDS TWEAKING
             {
                 this->needsRedrawing = true;
                 if (this->clickStartPoint->y > clickPoint->y) 
@@ -140,7 +140,8 @@ void GUIImage::Run(TS_Point* clickPoint)
                 tft->drawPixel((X+x), (Y+y), color); 
             }
         this->needsRedrawing = false;
-        } else if (this->imageClicked || this->inClickHandler)
+        } 
+        else
         {
         uint32_t pos = 0;
         for(uint16_t y = 0; y < this->Height; y++)
@@ -490,9 +491,4 @@ uint16_t GUIElement::turnToGrayScale(uint16_t color)
    sum += (color & 0b0000000000011111) * 255 / 31;    
    sum /= 3;  
    return ((sum & 0xF8) << 8) | ((sum & 0xFC) << 3) | (sum >> 3);
-}
-
-void GUI::turnToBlack(uint16_t x, uint16_t y,  uint16_t width, uint16_t height)
-{
-  this->tft->fillRect(x,y,width,height,ILI9341_BLACK);
 }

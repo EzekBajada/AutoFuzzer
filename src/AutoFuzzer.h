@@ -31,7 +31,6 @@ class GUIElement
     protected:
         void fillArc(uint16_t x, uint16_t y, uint16_t start_angle, uint16_t end_angle, uint16_t radiusX, uint16_t radiusY, uint16_t width, uint16_t colour);
         uint16_t turnToGrayScale(uint16_t color);
-        
 };
 
 class GUIImage: public GUIElement
@@ -42,7 +41,6 @@ class GUIImage: public GUIElement
         const uint8_t* Image;
         uint16_t ImageLength;
         void Run(TS_Point* clickPoint);        
-        bool inClickHandler = false;
 
     private:
         TS_Point* clickStartPoint = NULL;
@@ -76,6 +74,23 @@ class GUILabel: public GUIElement
         bool clickInProgress = false;
         uint16_t MovementSpeed = 100;
         uint64_t lastMovement = 0;        
+};
+
+class GUIScroll : public GUIElement
+{
+    public:
+        GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, String lines[255]);
+        ~GUIScroll() { }; 
+        String Lines[255]; // USE POINTER? 
+        void Run(TS_Point* clickPoint);
+        GUILabel* displayBlock = NULL;
+
+    private:
+        uint16_t currPos = 0;
+        bool needsRedrawing = true;
+        uint16_t MovementSpeed = 200;
+        TS_Point* clickStartPoint = NULL;
+        uint64_t lastMovement = 0;
 };
 
 class GUIGauge: public GUIElement
@@ -115,7 +130,6 @@ class GUICheckBox: public GUIElement
       bool clickInProgress = false;
       void (*ClickHandler)(uint8_t boxCode);
       bool needsRedrawing = true;
-     
 };
 
 class GUINumScroll: public GUIElement
@@ -145,7 +159,6 @@ class GUI
         void RegisterElement(GUIElement* element);
         void Run();
         uint16_t ScreenNumber = 1;
-        void turnToBlack(uint16_t x, uint16_t y,  uint16_t width, uint16_t height);
 
     private:        
         Adafruit_ILI9341* tft;
@@ -164,25 +177,17 @@ class GUI
 class CANMessage
 {
     public:
-        CANMessage(uint32_t id) 
-        {
-            this->ID = id;
-            this->Length = 0;
-            this->Timestamp = millis();
-            this->IsExtended = 0;
-            this->IsRemoteRequest = 0;
-            for(uint8_t i = 0; i < 8; i++) this->Data[i] = 0;            
-        };
+        CANMessage() {};
+        CANMessage(uint32_t id) { this->ID = id; };
         ~CANMessage() {};
-        uint64_t Timestamp;
-        uint32_t ID;
-        uint8_t Data[8];  
-        uint8_t Length;
-        bool IsExtended;
-        bool IsRemoteRequest;
+        uint64_t Timestamp = 0;
+        uint32_t ID = 0;
+        uint8_t Data[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };  
+        uint8_t Length = 0;
+        bool IsExtended = false;
+        bool IsRemoteRequest = false;
 
         String ToString();
-        
 };
 
 class CAN
@@ -213,9 +218,11 @@ class SDCard
         ~SDCard() {};
         bool Init();
         bool IsEnabled() { return this->enabled; };
+        void DeleteFile(String filename);
         File CreateFile(String filename);
         File OpenFile(String filename);
         bool WriteCanMessage(File& file, CANMessage* message);
+        CANMessage* ReadCanMessage(File& file);
         bool WriteBuffer(File& file, uint8_t* buffer, uint16_t length);
 
     private:
@@ -248,48 +255,30 @@ class CANSniffer
         void SetCANReceiver(CAN* receiver) { this->receiver = receiver; };
         CAN* GetCANReceiver() { return this->receiver; };
         void SetSDCard(SDCard* sdCard) { this->sdCard = sdCard; };
-        void SetSessionID(uint32_t sessionID){ this->sessionID = sessionID;};
         SDCard* GetSDCard() { return this->sdCard; };
         bool GetEnabled() { return this->enabled; };
-        File GetFile() {return this->file;};
-        bool Start();
+        bool Start(uint32_t sessionID);
         void Stop();
-        uint16_t BufferSize = 20;
-        CANMessage** Buffer = NULL;
-        bool BufferFull = false;
-        uint16_t internalBufferPointer = 0;
-        bool modeSelected = false;
 
         SniffedCANMessage* GetResults() { return this->Results; };
         SniffedCANMessage* Results = NULL;
-        uint32_t ResultCount = 0;
-        
+        uint32_t ResultCount = 0;        
         void Run();
-
+        GUILabel* statusLabel = NULL;
 
     private:
-        static CANSniffer* activeSniffer;
+        static void processor();
         CAN* receiver = NULL;
         SDCard* sdCard = NULL;
         bool enabled = false;
         File file;
-        String sessionID = "";
-        CANMessage** internalBuffer = NULL;
-        
-        
-        uint16_t counterBuffer = 0;
-//        void messageBuffer();
-//        bool checkTimer(uint8_t start, uint8_t duration);
-        uint8_t referenceTime = 0;
-        uint16_t snifferBufferSize = 0;
-        uint16_t bufferPointer = 0;
-        bool bufferFull;
-
-        
-        
-        
+        uint32_t sessionID = 0;
+        uint64_t timeStarted = 0;
+        void setStatus(String status);       
 };
 
+enum CANFuzzerModes { Analyse, None, Manual, Automatic };
+enum CANFuzzerInputs { SnifferFile, LiveCapture };
 class CANFuzzer
 {
     public:
@@ -300,16 +289,25 @@ class CANFuzzer
         uint8_t AutoDetectCANSpeed();
         CAN* GetCANReceiver() { return this->receiver; };
         CAN* GetCANTransmitter() { return this->transmitter; };   
-        SDCard* GetSDCard() { return this->sdCard; };
-        void SetSessionID(String sessionID){ this->sessionID = sessionID;};
-        void Analyse(File file, uint32_t sessionID);
+        SDCard* GetSDCard() { return this->sdCard; }; 
+        bool GetEnabled() { return this->enabled; };       
+        bool Start(uint32_t sessionID, CANFuzzerModes mode, CANFuzzerInputs input);
+        void Stop();
+        
         GUILabel* statusLabel = NULL;        
 
     private:
         CAN* transmitter;
         CAN* receiver;
         SDCard* sdCard;
-        String sessionID = "";
+        CANFuzzerModes mode = None;
+        CANFuzzerInputs input = LiveCapture;
+        File inputFile;
+        File analysedFile;
+        uint32_t sessionID = 0;
+        uint64_t timeStarted = 0;
         bool enabled = false;
+        uint8_t percentComplete = 0;
         void setStatus(String status);
+        CANMessage* getNextMessage();
 };

@@ -1,17 +1,21 @@
 #include "AutoFuzzer.h"
 
-String CANMessage:: ToString()
+String CANMessage::ToString()
 {
-    String s = String(this->ID);
-    String data1 = String(this->Data[0]);
-    String data2 = String(this->Data[1]);
-    String data3 = String(this->Data[2]);
-    String data4 = String(this->Data[3]);
-    String data5 = String(this->Data[4]);
-    String data6 = String(this->Data[5]);
-    String data7 = String(this->Data[6]);
-    String data8 = String(this->Data[7]);
-    return s + data1 + data2 + data3 +  data4 +  data5 + data6 + data7 + data8;
+    String s = String(this->ID, HEX);
+    s.toUpperCase();
+    while (s.length() < 4) s = String(F(" ")) + s;
+    s += String(F(" - "));
+    for(uint8_t i = 0; i < this->Length; i++) 
+    {
+        String num = String(this->Data[i], HEX);
+        num.toUpperCase();
+        while (num.length() < 2) num = String(F(" ")) + num;
+        s += num + String(" ");
+    }
+    if (this->IsExtended) s += F(" E");
+    if (this->IsRemoteRequest) s += F(" R");
+    return s;
 }
 
 CAN::CAN(uint8_t Pin)

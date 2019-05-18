@@ -43,6 +43,79 @@ uint8_t CANFuzzer::Init()
     return 0;
 }
 
+bool CANFuzzer::Start(uint32_t sessionID, CANFuzzerModes mode, CANFuzzerInputs input)
+{
+    if (this->enabled) return false;
+    this->sessionID = sessionID; 
+    this->mode = mode;
+    this->input = input;
+    switch(this->mode)
+    {
+        case Analyse:
+        {
+            this->setStatus(F("Starting Analysis..."));
+            this->enabled = true;
+            switch(this->input)
+            {
+                case SnifferFile:
+                {
+                    this->inputFile = this->sdCard->OpenFile(String(F("S")) + String(this->sessionID));
+                    if (!this->inputFile)
+                    {
+                        this->setStatus(F("Sniffed File not Found!"));
+                        this->enabled = false;
+                    }                  
+                }
+                break;
+                case LiveCapture:
+                {
+                }
+                break;
+            }
+            if (this->enabled)
+            {             
+                this->sdCard->DeleteFile(String(F("A")) + String(this->sessionID));
+                this->analysedFile = this->sdCard->CreateFile(String(F("A")) + String(this->sessionID));
+                if (!this->analysedFile)
+                {
+                    this->setStatus(F("Analysed File Creation Failed!"));
+                    this->enabled = false;
+                }
+            }
+        }
+        break;
+        case None:
+        {
+           
+        }
+        break;
+        case Manual:
+        {
+           
+        }
+        break;
+        case Automatic:
+        {
+           
+        }
+        break;
+    }      
+    if (this->enabled)
+    {
+        this->timeStarted = millis();
+        this->percentComplete = 0;
+    }
+    return this->enabled;
+}
+
+void CANFuzzer::Stop()
+{
+    if (this->inputFile) this->inputFile.close();
+    if (this->analysedFile) this->analysedFile.close();
+    this->sessionID = 0;
+    this->enabled = false;    
+}
+
 uint8_t CANFuzzer::AutoDetectCANSpeed()
 {
     this->setStatus(F("AutoDetecting CAN Speed..."));
@@ -59,14 +132,53 @@ uint8_t CANFuzzer::AutoDetectCANSpeed()
     this->setStatus(String(F("CAN Speed Detected at ")) + CAN::GetSpeedString(this->receiver->GetSpeed()) + String(F("kbps")));
 }
 
-void CANFuzzer::Analyse(File file, uint32_t sessionID)
+CANMessage* CANFuzzer::getNextMessage()
 {
-    this->sessionID = sessionID;
-    file = this->sdCard->CreateFile(String(F("Analysed"))+String(this->sessionID));
-    if (!file) Serial.println("ERROR");
-    if (file) this->enabled = true; else this->enabled = false;
+    switch(this->input)
+    {
+        case SnifferFile: return this->sdCard->ReadCanMessage(this->inputFile);
+        case LiveCapture: this->receiver->Receive();
+        default: return NULL;        
+    }
 }
+
 void CANFuzzer::Run()
 {
-    
+    if (!this->enabled) return;
+    switch(this->mode)
+    {
+        case Analyse:
+        {
+            if (this->input == SnifferFile && this->inputFile.position() + 10 > this->inputFile.size())
+            { // File Processed
+                this->setStatus(F("Analysis Complete."));
+                this->Stop();              
+            }
+            CANMessage* message = this->getNextMessage();
+            if (message != NULL)
+            {
+                Serial.println(message->ToString());
+                
+                // analysis goes here
+                
+                delete message;
+            }
+        }
+        break;
+        case None:
+        {
+           
+        }
+        break;
+        case Manual:
+        {
+           
+        }
+        break;
+        case Automatic:
+        {
+           
+        }
+        break;
+    }    
 }
