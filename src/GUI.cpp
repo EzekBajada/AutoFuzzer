@@ -59,6 +59,7 @@ void GUILabel::Run(TS_Point* clickPoint)
             }
         }
     }
+    
     else
     {
         if (this->clickStartPoint) 
@@ -66,9 +67,9 @@ void GUILabel::Run(TS_Point* clickPoint)
             delete this->clickStartPoint;
             this->clickStartPoint = NULL;
             this->needsRedrawing = false;
+            if (this->ClickHandler) this->ClickHandler(this->callBackCode);
         }
     }
- 
     if (this->needsRedrawing)
     {
         this->tft->fillRect(this->X, this->Y, this->Width, this->Height, ILI9341_BLACK);
@@ -141,6 +142,11 @@ void GUIImage::Run(TS_Point* clickPoint)
             }
         this->needsRedrawing = false;
         } 
+        else if (this->inClickHandler)
+        {
+          this->tft->fillRect(this->X,this->Y,this->Width,this->Height,ILI9341_BLACK);
+          this->needsRedrawing = false;
+        }
         else
         {
         uint32_t pos = 0;
@@ -261,7 +267,11 @@ void GUICheckBox::Run(TS_Point* clickPoint)
       this->tft->drawRect(this->X,this->Y,this->Width,this->Height,ILI9341_WHITE);
       this->needsRedrawing = false;
     }
-    else
+    else if(this->inClickHandler)
+    {
+      this->tft->fillRect(this->X,this->Y,this->Width,this->Height,ILI9341_BLACK);
+    }
+    else 
     {
       this->tft->fillRect(this->X,this->Y,this->Width,this->Height,ILI9341_WHITE);
       this->needsRedrawing = false;
@@ -316,8 +326,9 @@ void GUINumScroll::Run(TS_Point* clickPoint)
     }
   if(this->needsRedrawing)
   {
-    this->numString = String(this->CurrNum);
-    for(int i=0;i<this->numString.length();i++)this->tft->drawChar(this->X, this->Y, this->numString[i], ILI9341_WHITE, 0, 2);
+      this->numString = String(this->CurrNum);
+      for(int i=0;i<this->numString.length();i++)this->tft->drawChar(this->X, this->Y, this->numString[i], ILI9341_WHITE, 0, 2);
+      this->needsRedrawing = false;  
   }
 }
 // GUI --------------------------------------------------------------------------------------------------------------------------------------------------------

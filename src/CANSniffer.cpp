@@ -26,7 +26,7 @@ void CANSniffer::Stop()
     if (this->file) this->file.close();
     this->sessionID = 0;
     this->enabled = false;
-    this->setStatus(F(""));
+    this->setStatus(F("Sniffing Ended"));
 }
 
 void CANSniffer::Run()
@@ -37,7 +37,7 @@ void CANSniffer::Run()
         if (message)
         {
             message->Timestamp = millis() - this->timeStarted;
-            if (!this->sdCard->WriteCanMessage(this->file, message)) Serial.println("SD Write Failed!");
+            if (!this->sdCard->WriteCanMessage(this->file, message)) Serial.println("SD Write Failed!");            
             delete message;
         }        
     }

@@ -1,5 +1,32 @@
 #include "AutoFuzzer.h"
 
+void SniffedCANMessage::ProcessMessage(CANMessage* message)
+{
+    if (message->ID != this->ID || message->Length != this->Length) return;
+    this->IsExtended |= message->IsExtended;
+    this->IsRemoteRequest |= message->IsRemoteRequest;
+    uint64_t interval = this->lastInterval - message->Timestamp;
+    this->Interval *= this->InstanceCount;
+    this->Interval += interval;
+    this->InstanceCount++;
+    this->Interval /= this->InstanceCount;;
+    this->lastInterval = message->Timestamp;
+    for(uint8_t i = 0; i < 8; i++)
+    {
+        bool exists = false;
+        for(uint16_t j = 0; j < this->DataValueCount[i] && !exists; j++) if (this->Data[i][j] == message->Data[i]) exists = true;
+        if (!exists)
+        {
+            ++this->DataValueCount[i];
+            if (this->DataValueCount[i] == 1)
+                this->Data[i] = (uint8_t*) malloc(1);
+            else
+                this->Data[i] = (uint8_t*) realloc(this->Data[i], this->DataValueCount[i]);
+            this->Data[i][this->DataValueCount[i] - 1] = message->Data[i];
+        }
+    }
+}
+
 String CANMessage::ToString()
 {
     String s = String(this->ID, HEX);
@@ -113,7 +140,8 @@ bool CAN::Transmit(CANMessage* message)
 CANMessage* CAN::Receive()
 {
     if (CAN_MSGAVAIL != this->interface->checkReceive()) return NULL;
-    CANMessage* message = new CANMessage(this->interface->getCanId());
+    CANMessage* message = new CANMessage();
     this->interface->readMsgBuf(&message->Length, message->Data);
+    message->ID = this->interface->getCanId();   
     return message;
 }

@@ -27,10 +27,12 @@ class GUIElement
         uint16_t Height;
         uint16_t ScreenNumber;
         virtual void Run(TS_Point* clickPoint) = 0;
+        void Redraw() { this->needsRedrawing = true; };
 
     protected:
         void fillArc(uint16_t x, uint16_t y, uint16_t start_angle, uint16_t end_angle, uint16_t radiusX, uint16_t radiusY, uint16_t width, uint16_t colour);
         uint16_t turnToGrayScale(uint16_t color);
+        bool needsRedrawing = true;
 };
 
 class GUIImage: public GUIElement
@@ -40,15 +42,16 @@ class GUIImage: public GUIElement
         ~GUIImage() {};
         const uint8_t* Image;
         uint16_t ImageLength;
-        void Run(TS_Point* clickPoint);        
+        void Run(TS_Point* clickPoint); 
+        bool inClickHandler = false;      
 
     private:
-        TS_Point* clickStartPoint = NULL;
-        bool needsRedrawing = true;
+        TS_Point* clickStartPoint = NULL;        
         void (*ClickHandler)(uint8_t imageCode);
         uint8_t callBackCode = 0;
         bool clickInProgress = false;
         bool imageClicked = false;
+        
 };
 
 class GUILabel: public GUIElement
@@ -64,11 +67,10 @@ class GUILabel: public GUIElement
         bool AutoCenter = false;        
         int16_t CurrPos = 0;
         void Redraw() { this->needsRedrawing = true; };
-        void Run(TS_Point* clickPoint);        
+        void Run(TS_Point* clickPoint);      
 
     private:
         TS_Point* clickStartPoint = NULL;
-        bool needsRedrawing = true;
         void (*ClickHandler)(uint8_t imageCode);
         uint8_t callBackCode = 0;
         bool clickInProgress = false;
@@ -76,22 +78,7 @@ class GUILabel: public GUIElement
         uint64_t lastMovement = 0;        
 };
 
-class GUIScroll : public GUIElement
-{
-    public:
-        GUIScroll(Adafruit_ILI9341* tft, XPT2046_Touchscreen* touch, uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t screenNumber, String lines[255]);
-        ~GUIScroll() { }; 
-        String Lines[255]; // USE POINTER? 
-        void Run(TS_Point* clickPoint);
-        GUILabel* displayBlock = NULL;
 
-    private:
-        uint16_t currPos = 0;
-        bool needsRedrawing = true;
-        uint16_t MovementSpeed = 200;
-        TS_Point* clickStartPoint = NULL;
-        uint64_t lastMovement = 0;
-};
 
 class GUIGauge: public GUIElement
 {
@@ -112,7 +99,6 @@ class GUIGauge: public GUIElement
         void Run(TS_Point* clickPoint);
         
      private:
-        bool needsRedrawing = true;
         TS_Point* clickStartPoint = NULL;
         uint64_t lastMovement = 0;
 };
@@ -124,12 +110,11 @@ class GUICheckBox: public GUIElement
       void Run(TS_Point* clickPoint);        
       ~GUICheckBox(){ }
        bool BoxClickedInProgress = false;
-
+       bool inClickHandler = false; 
     private:  
       uint8_t boxCode = 0;
       bool clickInProgress = false;
       void (*ClickHandler)(uint8_t boxCode);
-      bool needsRedrawing = true;
 };
 
 class GUINumScroll: public GUIElement
@@ -139,11 +124,9 @@ class GUINumScroll: public GUIElement
     ~GUINumScroll() {};
     void Run(TS_Point* clickPoint);
     uint8_t CurrNum = 0;
-     
+    bool inClickHandler = false; 
   private:
     TS_Point* clickStartPoint = NULL; 
-    
-    bool needsRedrawing = true;
     uint64_t lastMovement = 0;
     uint16_t MovementSpeed = 100;
     String numString = "";
@@ -159,6 +142,8 @@ class GUI
         void RegisterElement(GUIElement* element);
         void Run();
         uint16_t ScreenNumber = 1;
+        uint16_t GetElementsCount() { return this->elementCount; };
+        GUIElement** GetElements() { return this->elements; }; 
 
     private:        
         Adafruit_ILI9341* tft;
@@ -235,14 +220,19 @@ class SniffedCANMessage
     public:
         SniffedCANMessage() {};
         ~SniffedCANMessage() {};
-    uint32_t ID;
-    bool IsExtended;
-    bool IsRemoteRequest;        
-    uint8_t Length;
-    
-    uint64_t Interval;    
-    uint8_t* Data[8];  
-    uint8_t DataValueCount[8];    
+        uint32_t ID = 0;
+        bool IsExtended = false;
+        bool IsRemoteRequest = false;
+        uint8_t Length = 0;
+        
+        uint64_t Interval = 0;    
+        uint32_t InstanceCount = 0;
+        uint8_t* Data[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };  
+        uint16_t DataValueCount[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        void ProcessMessage(CANMessage* message);
+
+    private:
+        uint64_t lastInterval = 0;
 };
 
 class CANSniffer
@@ -293,6 +283,8 @@ class CANFuzzer
         bool GetEnabled() { return this->enabled; };       
         bool Start(uint32_t sessionID, CANFuzzerModes mode, CANFuzzerInputs input);
         void Stop();
+        uint32_t FuzzedID = 0;
+        uint8_t FuzzedBytes = 0;
         
         GUILabel* statusLabel = NULL;        
 
@@ -310,4 +302,6 @@ class CANFuzzer
         uint8_t percentComplete = 0;
         void setStatus(String status);
         CANMessage* getNextMessage();
+        SniffedCANMessage** sniffedMessages = NULL;
+        uint16_t sniffedMessagesCount = 0;
 };

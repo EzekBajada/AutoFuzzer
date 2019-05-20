@@ -60,8 +60,7 @@ bool SDCard::WriteCanMessage(File& file, CANMessage* message)
     if (message->IsExtended) data[pos] |= 0b00000001;
     if (message->IsRemoteRequest) data[pos] |= 0b00000010;
     ++pos;
-    return file.write((uint8_t*) &data, 14 + message->Length) == 14 + message->Length;
-    //return file.write((uint8_t*) &message, sizeof(CANMessage)) == sizeof(CANMessage);
+    return file.write((uint8_t*) &data, 14 + message->Length) == 14 + message->Length;    
 }
 
 bool SDCard::WriteBuffer(File& file, uint8_t* buffer, uint16_t length)

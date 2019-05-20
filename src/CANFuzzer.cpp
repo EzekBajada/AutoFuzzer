@@ -5,6 +5,7 @@ CANFuzzer::CANFuzzer()
     this->transmitter = new CAN(D4);
     this->receiver = new CAN(D3);
     this->sdCard = new SDCard(D1);
+    srand(micros());
 }
 
 CANFuzzer::~CANFuzzer()
@@ -82,21 +83,88 @@ bool CANFuzzer::Start(uint32_t sessionID, CANFuzzerModes mode, CANFuzzerInputs i
                     this->enabled = false;
                 }
             }
+            if (this->enabled)
+            {
+                this->setStatus(F("Analysis in Progress...")); 
+                if (this->sniffedMessagesCount > 0)
+                {
+                    for(uint16_t i = 0; i < this->sniffedMessagesCount; i++) delete this->sniffedMessages[i];
+                    free(this->sniffedMessages);
+                    this->sniffedMessagesCount = 0;
+                    this->sniffedMessages = NULL;
+                }
+            }
         }
         break;
-        case None:
+        case None: // Playback
         {
-           
+            this->enabled = true;
+            switch(this->input)
+            {
+                case SnifferFile:
+                {
+                    this->inputFile = this->sdCard->OpenFile(String(F("S")) + String(this->sessionID));
+                    if (!this->inputFile)
+                    {
+                        this->setStatus(F("Sniffed File not Found!"));
+                        this->enabled = false;
+                    }                  
+                }
+                break;
+                case LiveCapture:
+                {
+                }
+                break;
+            }          
+            this->setStatus(F("Playback in Progress..."));
         }
         break;
         case Manual:
         {
-           
+            this->enabled = true;
+            switch(this->input)
+            {
+                case SnifferFile:
+                {
+                    this->inputFile = this->sdCard->OpenFile(String(F("S")) + String(this->sessionID));
+                    if (!this->inputFile)
+                    {
+                        this->setStatus(F("Sniffed File not Found!"));
+                        this->enabled = false;
+                    }                  
+                }
+                break;
+                case LiveCapture:
+                {
+                }
+                break;
+            }          
+            this->setStatus(F("Manual Fuzzing in Progress..."));          
         }
         break;
         case Automatic:
         {
-           
+            this->enabled = true;
+            switch(this->input)
+            {
+                case SnifferFile:
+                {
+                    this->inputFile = this->sdCard->OpenFile(String(F("S")) + String(this->sessionID));
+                    if (!this->inputFile)
+                    {
+                        this->setStatus(F("Sniffed File not Found!"));
+                        this->enabled = false;
+                    }                  
+                }
+                break;
+                case LiveCapture:
+                {
+                }
+                break;
+            }          
+
+             // reading of sniffed message to file goes here
+            this->setStatus(F("Auto Fuzzing in Progress..."));                    
         }
         break;
     }      
@@ -113,6 +181,8 @@ void CANFuzzer::Stop()
     if (this->inputFile) this->inputFile.close();
     if (this->analysedFile) this->analysedFile.close();
     this->sessionID = 0;
+    this->setStatus(F("Fuzzing Ended."));
+    // clearing of sniffed messages goes here
     this->enabled = false;    
 }
 
@@ -136,8 +206,15 @@ CANMessage* CANFuzzer::getNextMessage()
 {
     switch(this->input)
     {
-        case SnifferFile: return this->sdCard->ReadCanMessage(this->inputFile);
-        case LiveCapture: this->receiver->Receive();
+        case SnifferFile: 
+        {
+            CANMessage* message = this->sdCard->ReadCanMessage(this->inputFile);
+            if (message == NULL) return NULL;
+            if (this->mode != Analyse)               
+                while(message->Timestamp > millis() - this->timeStarted) yield();            
+            return message;
+        }
+        case LiveCapture: return this->receiver->Receive();
         default: return NULL;        
     }
 }
@@ -150,34 +227,97 @@ void CANFuzzer::Run()
         case Analyse:
         {
             if (this->input == SnifferFile && this->inputFile.position() + 10 > this->inputFile.size())
-            { // File Processed
-                this->setStatus(F("Analysis Complete."));
-                this->Stop();              
+            { // File Processed                
+                this->Stop(); 
             }
             CANMessage* message = this->getNextMessage();
             if (message != NULL)
-            {
-                Serial.println(message->ToString());
+            {                                
+                // analysis goes here 
+                SniffedCANMessage* sniffedMessage = NULL;
+                for(uint16_t i = 0; i < this->sniffedMessagesCount && sniffedMessage == NULL; i++)
+                    if (this->sniffedMessages[i]->ID == message->ID && this->sniffedMessages[i]->Length == message->Length) sniffedMessage = this->sniffedMessages[i];
+                if (!sniffedMessage)
+                { 
+                    sniffedMessage = new SniffedCANMessage();
+                    sniffedMessage->ID = message->ID;
+                    sniffedMessage->Length = message->Length;
+                    ++this->sniffedMessagesCount;
+                    if (this->sniffedMessagesCount == 1)
+                        this->sniffedMessages = (SniffedCANMessage**) malloc(sizeof(SniffedCANMessage*));
+                    else
+                        this->sniffedMessages = (SniffedCANMessage**) realloc(this->sniffedMessages, sizeof(SniffedCANMessage*) * this->sniffedMessagesCount);
+                    this->sniffedMessages[this->sniffedMessagesCount - 1] = sniffedMessage;
+                }
+                sniffedMessage->ProcessMessage(message);
+                // writing of sniffed message to file goes here               
+
                 
-                // analysis goes here
-                
+                Serial.println(message->ToString() + String(ESP.getFreeHeap()));
                 delete message;
             }
         }
         break;
         case None:
         {
-           
+            if (this->input == SnifferFile && this->inputFile.position() + 10 > this->inputFile.size())
+            { // File Processed                
+                this->Stop();              
+            }
+            CANMessage* message = this->getNextMessage();
+            if (message != NULL)
+            {
+                this->transmitter->Transmit(message);            
+                delete message;
+            }           
         }
         break;
         case Manual:
         {
-           
+            if (this->input == SnifferFile && this->inputFile.position() + 10 > this->inputFile.size())
+            { // File Processed                
+                this->Stop();              
+            }
+            CANMessage* message = this->getNextMessage();
+            if (message != NULL)
+            {
+                if (message->ID == this->FuzzedID)                
+                    for(uint8_t i = 0; i < 8; i++)
+                        if ((this->FuzzedBytes & (0b10000000 >> i)) != 0)
+                            message->Data[i] = (uint8_t) (rand() % 256);
+                this->transmitter->Transmit(message);            
+                delete message;
+            }             
         }
         break;
-        case Automatic:
-        {
-           
+        case Automatic: // Uses Analysed File
+        {          
+            
+            if (this->input == SnifferFile && this->inputFile.position() + 10 > this->inputFile.size())
+            { // File Processed                
+                this->Stop();              
+            }
+            CANMessage* message = this->getNextMessage();
+            if (message != NULL)
+            {
+                if (message->ID == this->FuzzedID)
+                {
+                    SniffedCANMessage* sniffedMessage = NULL;
+                    for(uint16_t i = 0; i < this->sniffedMessagesCount && sniffedMessage == NULL; i++)
+                        if (this->sniffedMessages[i]->ID == message->ID && this->sniffedMessages[i]->Length == message->Length) sniffedMessage = this->sniffedMessages[i];
+                    if (sniffedMessage != NULL)
+                    {
+                        for(uint8_t i = 0; i < 8; i++)
+                            if ((this->FuzzedBytes & (0b10000000 >> i)) != 0)
+                            {
+                                uint16_t valueIndex = (uint16_t) (rand() % sniffedMessage->DataValueCount[i]);
+                                message->Data[i] = sniffedMessage->Data[i][valueIndex];
+                            }
+                    }
+                }
+                this->transmitter->Transmit(message);            
+                delete message;
+            }              
         }
         break;
     }    
