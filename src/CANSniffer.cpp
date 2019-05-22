@@ -33,9 +33,10 @@ void CANSniffer::Run()
 {    
     if (this->enabled)
     {
+       
         CANMessage* message = this->receiver->Receive();
         if (message)
-        {
+        { 
             message->Timestamp = millis() - this->timeStarted;
             if (!this->sdCard->WriteCanMessage(this->file, message)) Serial.println("SD Write Failed!");            
             delete message;

@@ -167,7 +167,9 @@ bool CANFuzzer::Start(uint32_t sessionID, CANFuzzerModes mode, CANFuzzerInputs i
             this->setStatus(F("Auto Fuzzing in Progress..."));                    
         }
         break;
-    }      
+        
+    }
+          
     if (this->enabled)
     {
         this->timeStarted = millis();
@@ -218,6 +220,44 @@ CANMessage* CANFuzzer::getNextMessage()
         default: return NULL;        
     }
 }
+String** CANFuzzer::idStrings()
+{
+     this->inputFile = this->sdCard->OpenFile(String(F("S")) + String(this->sessionID));
+     if (!this->inputFile)
+     {
+        this->setStatus(F("Sniffed File not Found!"));
+        this->enabled = false;
+     }
+     
+     for(int i=0;i<this->inputFile.size();i++)
+     {
+        
+        CANMessage* message = this->getNextMessage();
+        
+        if(message != NULL)
+        {
+          Serial.println("POS:");
+          this->ids[pos] = NULL;
+//          this->ids[pos] = 33;  
+         if(this->ids[pos] == NULL) Serial.println("its null");
+          
+          
+          
+          if(this->ids[pos] == NULL)
+        {
+          Serial.println("pos");
+          String currId = String(message->ID);
+          ids[0][pos] = currId;
+          this->pos++;
+          this->count++;
+        }
+        }
+        
+      }   
+     
+    
+     return this->ids;
+}
 
 void CANFuzzer::Run()
 {
@@ -265,6 +305,7 @@ void CANFuzzer::Run()
                 this->Stop();              
             }
             CANMessage* message = this->getNextMessage();
+            Serial.println("No fuzzing");
             if (message != NULL)
             {
                 this->transmitter->Transmit(message);            
@@ -279,8 +320,10 @@ void CANFuzzer::Run()
                 this->Stop();              
             }
             CANMessage* message = this->getNextMessage();
+            Serial.println("Fuzzing Manually");
             if (message != NULL)
             {
+                
                 if (message->ID == this->FuzzedID)                
                     for(uint8_t i = 0; i < 8; i++)
                         if ((this->FuzzedBytes & (0b10000000 >> i)) != 0)
@@ -320,5 +363,7 @@ void CANFuzzer::Run()
             }              
         }
         break;
+        ;
+        }
+        
     }    
-}

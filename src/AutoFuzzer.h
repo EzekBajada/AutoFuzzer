@@ -173,6 +173,7 @@ class CANMessage
         bool IsRemoteRequest = false;
 
         String ToString();
+        
 };
 
 class CAN
@@ -207,7 +208,9 @@ class SDCard
         File CreateFile(String filename);
         File OpenFile(String filename);
         bool WriteCanMessage(File& file, CANMessage* message);
+        // bool WriteSniffedCanMessage(File& file, CANMessage* message);
         CANMessage* ReadCanMessage(File& file);
+        // CANMessage* ReadSniffedCanMessage(File& file);
         bool WriteBuffer(File& file, uint8_t* buffer, uint16_t length);
 
     private:
@@ -255,7 +258,6 @@ class CANSniffer
         uint32_t ResultCount = 0;        
         void Run();
         GUILabel* statusLabel = NULL;
-
     private:
         static void processor();
         CAN* receiver = NULL;
@@ -267,7 +269,7 @@ class CANSniffer
         void setStatus(String status);       
 };
 
-enum CANFuzzerModes { Analyse, None, Manual, Automatic };
+enum CANFuzzerModes { Analyse, None, Manual, Automatic, Unique};
 enum CANFuzzerInputs { SnifferFile, LiveCapture };
 class CANFuzzer
 {
@@ -286,7 +288,12 @@ class CANFuzzer
         uint32_t FuzzedID = 0;
         uint8_t FuzzedBytes = 0;
         
-        GUILabel* statusLabel = NULL;        
+        GUILabel* statusLabel = NULL;
+        String** idStrings();
+        String** ids;
+        uint32_t count = 0;
+        uint32_t pos = 0;
+               
 
     private:
         CAN* transmitter;
@@ -304,4 +311,5 @@ class CANFuzzer
         CANMessage* getNextMessage();
         SniffedCANMessage** sniffedMessages = NULL;
         uint16_t sniffedMessagesCount = 0;
+       
 };

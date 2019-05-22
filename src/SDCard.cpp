@@ -45,7 +45,17 @@ CANMessage* SDCard::ReadCanMessage(File& file)
     message->IsRemoteRequest = ((data[pos] &= 0b00000010) != 0);
     return message;
 }
-
+//bool SDCard::WriteSniffedCanMessage(File& file, SniffedCANMessage* message)
+//{
+//  if(!file) return false;
+//  SPI.setFrequency(20000000);
+//  uint8_t data[14 + message->Length];
+//    uint16_t pos = 0;    
+//    for(uint8_t i = 0; i < 8; i++) data[pos++] = (uint8_t) ((message->Timestamp >> (i * 8)) & 0xFF);
+//    for(uint8_t i = 0; i < 4; i++) data[pos++] = (uint8_t) ((message->ID >> (i * 8)) & 0xFF);
+//    data[pos++] = message->Length;    
+//    for(uint8_t i = 0; i < message->Length; i++) data[pos++] = message->Data[i];
+//}
 bool SDCard::WriteCanMessage(File& file, CANMessage* message)
 {
     if(!file) return false;     

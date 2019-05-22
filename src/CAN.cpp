@@ -26,7 +26,6 @@ void SniffedCANMessage::ProcessMessage(CANMessage* message)
         }
     }
 }
-
 String CANMessage::ToString()
 {
     String s = String(this->ID, HEX);
