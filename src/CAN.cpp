@@ -103,8 +103,7 @@ bool CAN::AutoDetectSpeed(GUILabel* statusLabel) // AutoDetect CANBus Speed
 {
     this->statusLabel = statusLabel;
     uint8_t speeds[] = {CAN_5KBPS, CAN_10KBPS, CAN_20KBPS, CAN_25KBPS, CAN_31K25BPS,CAN_33KBPS, CAN_40KBPS, CAN_50KBPS, CAN_80KBPS, CAN_83K3BPS, CAN_95KBPS, CAN_100KBPS, CAN_125KBPS, CAN_200KBPS, CAN_250KBPS, CAN_500KBPS, CAN_666KBPS, CAN_1000KBPS};
-    //for(uint8_t i = 0; i < 18; i++)
-    for(uint8_t i = 11; i < 12; i++)  // DEBUG
+    for(uint8_t i = 11; i < 18; i++)
     {
         this->setStatus(String(F("Checking ")) + CAN::GetSpeedString(speeds[i]) + String(F("kbps")));
         //Serial.print(String(F("Checking ")) + CAN::GetSpeedString(speeds[i]) + String(F("kbps...")));

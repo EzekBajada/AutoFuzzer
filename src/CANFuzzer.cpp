@@ -211,7 +211,12 @@ CANMessage* CANFuzzer::getNextMessage()
         case SnifferFile: 
         {
             CANMessage* message = this->sdCard->ReadCanMessage(this->inputFile);
-            if (message == NULL) return NULL;
+          
+            if (message == NULL) 
+            {
+              Serial.print("actually vojt");
+              return NULL;
+              }
             if (this->mode != Analyse)               
                 while(message->Timestamp > millis() - this->timeStarted) yield();            
             return message;
@@ -238,7 +243,7 @@ String** CANFuzzer::idStrings()
         {
           Serial.println("POS:");
           this->ids[pos] = NULL;
-//          this->ids[pos] = 33;  
+//          this->ids[pos] = 33;    
          if(this->ids[pos] == NULL) Serial.println("its null");
           
           
@@ -257,6 +262,20 @@ String** CANFuzzer::idStrings()
      
     
      return this->ids;
+}
+uint32_t** CANFuzzer::canIds(uint32_t sessionID)
+{
+  this->inputFile = SD.open("S1", FILE_READ);
+  Serial.println(this->inputFile.size());
+  if (!this->inputFile)
+  {
+      this->setStatus(F("Sniffed File not Found!"));
+      this->enabled = false;
+  }
+  this->input = SnifferFile;
+  CANMessage* message = this->getNextMessage();
+  if(message != NULL) Serial.print(message->ID);
+  return this->cans;
 }
 
 void CANFuzzer::Run()

@@ -23,6 +23,7 @@ File SDCard::CreateFile(String filename)
 
 File SDCard::OpenFile(String filename)
 {
+    Serial.println(filename);
     return SD.open(filename, FILE_READ);
 }
 

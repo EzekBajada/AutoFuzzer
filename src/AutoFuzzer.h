@@ -289,6 +289,8 @@ class CANFuzzer
         uint8_t FuzzedBytes = 0;
         
         GUILabel* statusLabel = NULL;
+        uint32_t** canIds(uint32_t sessionID);
+        uint32_t** cans;
         String** idStrings();
         String** ids;
         uint32_t count = 0;

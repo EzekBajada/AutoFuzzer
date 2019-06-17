@@ -20,13 +20,13 @@
 void IconClick(uint8_t imageCode);
 void BoxClick(uint8_t boxCode);
 void LabelClick(uint8_t boxCode);
-
+int currPos = 0;
 uint32_t sessionID = 1;
 CANFuzzerInputs input = SnifferFile;
 CANFuzzerModes mode = Manual;
 uint32_t FuzzedID = 0xAA;
 uint8_t FuzzedBytes = 0b00011000;
- 
+uint32_t canIDs[3] = {0xAA, 592, 0x1A6};
 CANSniffer sniffer;
 CANFuzzer fuzzer;
 GUI gui;
@@ -86,6 +86,13 @@ GUILabel autoLabel(gui.GetTFT(), gui.GetTS(), 220, 215, 20, 20, 4, "Automatic", 
 GUILabel okLabel(gui.GetTFT(), gui.GetTS(), 260, 160, 30, 30, 4, "OK", 3, ILI9341_WHITE, false, LabelClick, 1, NULL, 0, 0);
 GUILabel scrollText(gui.GetTFT(), gui.GetTS(), 0, 30, 320, 50, 10, "", 1, ILI9341_WHITE, false, NULL, 0, NULL, 0, 0);
 
+GUILabel idLabel(gui.GetTFT(), gui.GetTS(), 210, 50, 20, 20, 4, String(FuzzedID), 2, ILI9341_WHITE, false, LabelClick, 3, NULL, 0, 0);
+
+GUILabel idNo1(gui.GetTFT(), gui.GetTS(), 160, 50, 20, 20, 4, "170", 2, ILI9341_WHITE, false, LabelClick, 4, NULL, 0, 0);
+
+GUILabel idNo2(gui.GetTFT(), gui.GetTS(), 210, 50, 20, 20, 4, "592", 2, ILI9341_WHITE, false, LabelClick, 5, NULL, 0, 0);
+
+GUILabel idNo3(gui.GetTFT(), gui.GetTS(), 260, 50, 20, 20, 4, "422", 2, ILI9341_WHITE, false, LabelClick, 6, NULL, 0, 0);
 
 void IconClick(uint8_t imageCode)
 {
@@ -246,9 +253,102 @@ void LabelClick(uint8_t boxCode)
         break;
         case 3:
         {
-          
+          // Handle CAN IDs
+          if(currPos >= 3) {currPos = 0; Serial.println("issa daqshekk");}
+          else { currPos++; }
+          Serial.println(currPos);
+          switch(currPos)
+          {
+            case 0: 
+            {
+              gui.GetTFT()->fillRect(idLabel.X,idLabel.Y,idLabel.Width,idLabel.Height,ILI9341_BLACK);
+              FuzzedID = 0xAA;
+              idLabel.Text = String(FuzzedID);
+              idLabel.Redraw();
+              idLabel.Run(NULL);           
+            }
+            case 1: 
+            {
+              gui.GetTFT()->fillRect(idLabel.X,idLabel.Y,idLabel.Width,idLabel.Height,ILI9341_BLACK);
+              FuzzedID = 592;
+              idLabel.Text = String(FuzzedID);
+              idLabel.Redraw();
+              idLabel.Run(NULL);           
+            }
+            case 2: 
+            {
+              gui.GetTFT()->fillRect(idLabel.X,idLabel.Y,idLabel.Width,idLabel.Height,ILI9341_BLACK);
+              FuzzedID = 0x1A6;
+              idLabel.Text = String(FuzzedID);
+              idLabel.Redraw();
+              idLabel.Run(NULL);           
+            }
+          }
         }
         break;
+        case 4:
+        {
+          FuzzedID = 0xAA;
+          Serial.println(FuzzedID);
+          boxForByte1.BoxClickedInProgress = false;
+          boxForByte1.Redraw();
+          boxForByte2.BoxClickedInProgress = false;
+          boxForByte2.Redraw();
+          boxForByte3.BoxClickedInProgress = false;
+          boxForByte3.Redraw();
+          boxForByte4.BoxClickedInProgress = false;
+          boxForByte4.Redraw();
+          boxForByte5.BoxClickedInProgress = true;
+          boxForByte5.Redraw();
+          boxForByte6.BoxClickedInProgress = true;
+          boxForByte6.Redraw();
+          boxForByte7.BoxClickedInProgress = false;
+          boxForByte7.Redraw();
+          boxForByte8.BoxClickedInProgress = false;
+          boxForByte8.Redraw();
+        } break;
+        case 5:
+        {
+          FuzzedID = 592;
+          boxForByte1.BoxClickedInProgress = false;
+          boxForByte1.Redraw();
+          boxForByte2.BoxClickedInProgress = true;
+          boxForByte2.Redraw();
+          boxForByte3.BoxClickedInProgress = false;
+          boxForByte3.Redraw();
+          boxForByte4.BoxClickedInProgress = false;
+          boxForByte4.Redraw();
+          boxForByte5.BoxClickedInProgress = false;
+          boxForByte5.Redraw();
+          boxForByte6.BoxClickedInProgress = false;
+          boxForByte6.Redraw();
+          boxForByte7.BoxClickedInProgress = false;
+          boxForByte7.Redraw();
+          boxForByte8.BoxClickedInProgress = false;
+          boxForByte8.Redraw();
+          Serial.println(FuzzedID);
+        } break;
+        case 6:
+        {
+          FuzzedID = 0x1A6;
+           boxForByte1.BoxClickedInProgress = true;
+          boxForByte1.Redraw();
+          boxForByte2.BoxClickedInProgress = true;
+          boxForByte2.Redraw();
+          boxForByte3.BoxClickedInProgress = true;
+          boxForByte3.Redraw();
+          boxForByte4.BoxClickedInProgress = true;
+          boxForByte4.Redraw();
+          boxForByte5.BoxClickedInProgress = true;
+          boxForByte5.Redraw();
+          boxForByte6.BoxClickedInProgress = true;
+          boxForByte6.Redraw();
+          boxForByte7.BoxClickedInProgress = true;
+          boxForByte7.Redraw();
+          boxForByte8.BoxClickedInProgress = true;
+          boxForByte8.Redraw();
+          Serial.println(FuzzedID);
+        } break;
     }
 }
 
@@ -261,7 +361,7 @@ void setup()
     Serial.begin(250000);
     Serial.println("\n\nCAN-Bus Fuzzer\n");
     //Serial.print("Initialising...");
-
+    fuzzer.canIds(1);
     
     gui.ScreenNumber = 9999999999;
     sniffer.statusLabel = &statusLabel;
@@ -322,6 +422,9 @@ void setup()
     gui.RegisterElement(&autoLabel);
     gui.RegisterElement(&snifferFileLabel);
     gui.RegisterElement(&liveLabel);
+    gui.RegisterElement(&idNo1);
+    gui.RegisterElement(&idNo2);
+    gui.RegisterElement(&idNo3);
 
     gui.Run();    
    
