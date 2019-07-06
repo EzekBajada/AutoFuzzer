@@ -23,8 +23,8 @@ int currPos = 0;
 uint32_t sessionID = 1;
 CANFuzzerInputs input = SnifferFile;
 CANFuzzerModes mode = Manual;
-uint32_t FuzzedID = 0xAA;
-uint8_t FuzzedBytes = 0b00011000;
+uint32_t FuzzedID = 592;
+uint8_t FuzzedBytes = 0b00100000;
 uint32_t canIDs[3] = {0xAA, 592, 0x1A6};
 CANSniffer sniffer;
 CANFuzzer fuzzer;
@@ -211,34 +211,34 @@ void LabelClick(uint8_t boxCode)
         case 1: //okBox
         {
             Serial.println("INAFSET");
+            Serial.println(FuzzedID);
             uint8_t y = 0;
             for(uint16_t i = 0; i < gui.GetElementsCount(); i++) if(gui.GetElements()[i]->ScreenNumber == 0) y += gui.GetElements()[i]->Y;
             gui.GetTFT()->fillRect(0,y,320,240,ILI9341_BLACK);
             for(uint16_t i = 0; i < gui.GetElementsCount(); i++) if(gui.GetElements()[i]->ScreenNumber == 1) gui.GetElements()[i]->Redraw();
             gui.ScreenNumber = 1;
-            FuzzedBytes = 0;
+            // FuzzedBytes = 0;
             if((String(numScroll.CurrNum) + String(numScroll2.CurrNum) + String(numScroll3.CurrNum)) != 0)
             {
                 sessionID = (String(numScroll.CurrNum) + String(numScroll2.CurrNum) + String(numScroll3.CurrNum)).toInt();
             }
-            if (boxForByte1.BoxClickedInProgress) FuzzedBytes |= 0b10000000;
-            if (boxForByte2.BoxClickedInProgress) FuzzedBytes |= 0b01000000;
-            if (boxForByte3.BoxClickedInProgress) FuzzedBytes |= 0b00100000;
-            if (boxForByte4.BoxClickedInProgress) FuzzedBytes |= 0b00010000;
-            if (boxForByte5.BoxClickedInProgress) FuzzedBytes |= 0b00001000;
-            if (boxForByte6.BoxClickedInProgress) FuzzedBytes |= 0b00000100;
-            if (boxForByte7.BoxClickedInProgress) FuzzedBytes |= 0b00000010;
-            if (boxForByte8.BoxClickedInProgress) FuzzedBytes |= 0b00000001;
+            // if (boxForByte1.BoxClickedInProgress) FuzzedBytes |= 0b10000000;
+            // if (boxForByte2.BoxClickedInProgress) FuzzedBytes |= 0b01000000;
+            // if (boxForByte3.BoxClickedInProgress) FuzzedBytes |= 0b00100000;
+            // if (boxForByte4.BoxClickedInProgress) FuzzedBytes |= 0b00010000;
+            // if (boxForByte5.BoxClickedInProgress) FuzzedBytes |= 0b00001000;
+            // if (boxForByte6.BoxClickedInProgress) FuzzedBytes |= 0b00000100;
+            // if (boxForByte7.BoxClickedInProgress) FuzzedBytes |= 0b00000010;
+            // if (boxForByte8.BoxClickedInProgress) FuzzedBytes |= 0b00000001;
             if (boxMode1.BoxClickedInProgress) mode = None;
             if (boxMode2.BoxClickedInProgress) mode = Manual;
             if (boxMode3.BoxClickedInProgress) mode = Automatic;
-            
             if (boxInput1.BoxClickedInProgress) input = SnifferFile;
             if (boxInput2.BoxClickedInProgress) input = LiveCapture;
-//            // CAN ID setting goes here
+//            // CAN ID setting goes hereCOM
 
             // INput setting goes here
-            Serial.println(sessionID);
+            // Serial.println(sessionID);
         }
         break;  
         case 2:

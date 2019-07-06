@@ -214,7 +214,6 @@ CANMessage* CANFuzzer::getNextMessage()
           
             if (message == NULL) 
             {
-              Serial.print("actually vojt");
               return NULL;
               }
             if (this->mode != Analyse)               
