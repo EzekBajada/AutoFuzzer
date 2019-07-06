@@ -11,7 +11,6 @@
  * D6   MISO    MISO    MISO  MISO    MISO
  * D7   MOSI    MOSI    MOSI  MOSI    MOSI
  * D8                   CS   
- */
 
 /* Screen Codes
  * 0 = 
