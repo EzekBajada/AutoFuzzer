@@ -323,9 +323,13 @@ void CANFuzzer::Run()
                 this->Stop();              
             }
             CANMessage* message = this->getNextMessage();
-            Serial.println("No fuzzing");
             if (message != NULL)
             {
+                if(message->ID == 304)
+                {
+                    Serial.println("BUTTON ID: ");
+                    Serial.println(message->ID);
+                }
                 this->transmitter->Transmit(message);            
                 delete message;
             }           
@@ -338,14 +342,16 @@ void CANFuzzer::Run()
                 this->Stop();              
             }
             CANMessage* message = this->getNextMessage();
-            Serial.println("Fuzzing Manually");
             if (message != NULL)
             {
-                
                 if (message->ID == this->FuzzedID)                
                     for(uint8_t i = 0; i < 8; i++)
+                    {
                         if ((this->FuzzedBytes & (0b10000000 >> i)) != 0)
+                        {
                             message->Data[i] = (uint8_t) (rand() % 256);
+                        }
+                    }
                 this->transmitter->Transmit(message);            
                 delete message;
             }             

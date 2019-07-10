@@ -23,9 +23,9 @@ int currPos = 0;
 uint32_t sessionID = 1;
 CANFuzzerInputs input = SnifferFile;
 CANFuzzerModes mode = Manual;
-uint32_t FuzzedID = 592;
+uint32_t FuzzedID = 464;
 uint8_t FuzzedBytes = 0b00100000;
-uint32_t canIDs[3] = {0xAA, 592, 0x1A6};
+uint32_t canIDs[3] = {0xAA, 464, 0x1A6};
 CANSniffer sniffer;
 CANFuzzer fuzzer;
 GUI gui;
@@ -89,7 +89,7 @@ GUILabel idLabel(gui.GetTFT(), gui.GetTS(), 210, 50, 20, 20, 4, String(FuzzedID)
 
 GUILabel idNo1(gui.GetTFT(), gui.GetTS(), 160, 50, 20, 20, 4, "170", 2, ILI9341_WHITE, false, LabelClick, 4, NULL, 0, 0);
 
-GUILabel idNo2(gui.GetTFT(), gui.GetTS(), 210, 50, 20, 20, 4, "592", 2, ILI9341_WHITE, false, LabelClick, 5, NULL, 0, 0);
+GUILabel idNo2(gui.GetTFT(), gui.GetTS(), 210, 50, 20, 20, 4, "464", 2, ILI9341_WHITE, false, LabelClick, 5, NULL, 0, 0);
 
 GUILabel idNo3(gui.GetTFT(), gui.GetTS(), 260, 50, 20, 20, 4, "422", 2, ILI9341_WHITE, false, LabelClick, 6, NULL, 0, 0);
 
@@ -131,7 +131,7 @@ void IconClick(uint8_t imageCode)
             }
             else
             {
-                fuzzer.FuzzedID = FuzzedID;
+                fuzzer.FuzzedID = 168;
                 fuzzer.FuzzedBytes = FuzzedBytes;                
                 fuzzer.Start(sessionID, mode, input);
             }   
@@ -157,7 +157,6 @@ void BoxClick(uint8_t boxCode)
     {
       String numString = String(numScroll.CurrNum) + String(numScroll2.CurrNum) + String(numScroll3.CurrNum);
        sessionID = numString.toInt();
-       Serial.println(sessionID);
     }
     break;
     case 3: 
@@ -211,7 +210,6 @@ void LabelClick(uint8_t boxCode)
         case 1: //okBox
         {
             Serial.println("INAFSET");
-            Serial.println(FuzzedID);
             uint8_t y = 0;
             for(uint16_t i = 0; i < gui.GetElementsCount(); i++) if(gui.GetElements()[i]->ScreenNumber == 0) y += gui.GetElements()[i]->Y;
             gui.GetTFT()->fillRect(0,y,320,240,ILI9341_BLACK);
@@ -222,21 +220,22 @@ void LabelClick(uint8_t boxCode)
             {
                 sessionID = (String(numScroll.CurrNum) + String(numScroll2.CurrNum) + String(numScroll3.CurrNum)).toInt();
             }
-            // if (boxForByte1.BoxClickedInProgress) FuzzedBytes |= 0b10000000;
-            // if (boxForByte2.BoxClickedInProgress) FuzzedBytes |= 0b01000000;
-            // if (boxForByte3.BoxClickedInProgress) FuzzedBytes |= 0b00100000;
-            // if (boxForByte4.BoxClickedInProgress) FuzzedBytes |= 0b00010000;
-            // if (boxForByte5.BoxClickedInProgress) FuzzedBytes |= 0b00001000;
-            // if (boxForByte6.BoxClickedInProgress) FuzzedBytes |= 0b00000100;
-            // if (boxForByte7.BoxClickedInProgress) FuzzedBytes |= 0b00000010;
-            // if (boxForByte8.BoxClickedInProgress) FuzzedBytes |= 0b00000001;
+            if (boxForByte1.BoxClickedInProgress) FuzzedBytes |= 0b10000000;
+            if (boxForByte2.BoxClickedInProgress) FuzzedBytes |= 0b01000000;
+            if (boxForByte3.BoxClickedInProgress) FuzzedBytes |= 0b00100000;
+            if (boxForByte4.BoxClickedInProgress) FuzzedBytes |= 0b00010000;
+            if (boxForByte5.BoxClickedInProgress) FuzzedBytes |= 0b00001000;
+            if (boxForByte6.BoxClickedInProgress) FuzzedBytes |= 0b00000100;
+            if (boxForByte7.BoxClickedInProgress) FuzzedBytes |= 0b00000010;
+            if (boxForByte8.BoxClickedInProgress) FuzzedBytes |= 0b00000001;
             if (boxMode1.BoxClickedInProgress) mode = None;
             if (boxMode2.BoxClickedInProgress) mode = Manual;
             if (boxMode3.BoxClickedInProgress) mode = Automatic;
             if (boxInput1.BoxClickedInProgress) input = SnifferFile;
             if (boxInput2.BoxClickedInProgress) input = LiveCapture;
 //            // CAN ID setting goes hereCOM
-
+            Serial.print("Session ID:");
+            Serial.println(FuzzedID);
             // INput setting goes here
             // Serial.println(sessionID);
         }
@@ -308,12 +307,12 @@ void LabelClick(uint8_t boxCode)
         } break;
         case 5:
         {
-          FuzzedID = 592;
+          FuzzedID = 464;
           boxForByte1.BoxClickedInProgress = false;
           boxForByte1.Redraw();
-          boxForByte2.BoxClickedInProgress = true;
+          boxForByte2.BoxClickedInProgress = false;
           boxForByte2.Redraw();
-          boxForByte3.BoxClickedInProgress = false;
+          boxForByte3.BoxClickedInProgress = true;
           boxForByte3.Redraw();
           boxForByte4.BoxClickedInProgress = false;
           boxForByte4.Redraw();
